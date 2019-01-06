@@ -50,7 +50,11 @@ class ReflektCameraImpl(
                     )
                 }
 
-                val surfaceConfig = SurfaceConfig(outputResolutions, userSettings.rotation)
+                val surfaceConfig = SurfaceConfig(
+                    outputResolutions,
+                    userSettings.rotation,
+                    userSettings.previewAspectRatio
+                )
 
 //                cameraSurface.acquireSurface(surfaceConfig).surface.release()
                 val typedSurface = cameraSurface.acquireSurface(surfaceConfig)
@@ -80,6 +84,15 @@ class ReflektCameraImpl(
 
     override suspend fun stopPreview() {
         cameraLogger.debug { "#stopPreview" }
+        withContext(cameraDispatcher) {
+            val device = reflektDevice
+            check(device != null) { "camera is not opened" }
+            device.stopPreview()
+        }
+    }
+
+    override suspend fun previewAspectRatio(aspectRatio: AspectRatio) {
+        cameraLogger.debug { "#previewAspectRatio" }
         withContext(cameraDispatcher) {
             val device = reflektDevice
             check(device != null) { "camera is not opened" }

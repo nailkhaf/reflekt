@@ -24,6 +24,8 @@ interface ReflektCamera {
 
     suspend fun stopPreview()
 
+    suspend fun previewAspectRatio(aspectRatio: AspectRatio)
+
     suspend fun stop()
 
     suspend fun getAvailableLenses(): List<Lens>

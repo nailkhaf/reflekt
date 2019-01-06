@@ -7,14 +7,28 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.view.Surface
+import tech.khana.reflekt.core.AspectRatio.AR_1X1
 
 data class UserSettings(
     val surfaces: List<ReflektSurface>,
     val rotation: Rotation,
+    val previewAspectRatio: AspectRatio = AR_1X1,
     val direct: Lens = Lens.FRONT,
     val flashMode: FlashMode = FlashMode.OFF,
     val supportLevel: SupportLevel = SupportLevel.LEGACY
 )
+
+enum class AspectRatio(val value: Float) {
+    AR_16X9(16f / 9f),
+    AR_4X3(4f / 3f),
+    AR_2X1(2f),
+    AR_1X1(1f)
+}
+
+fun aspectRatioBy(value: Float): AspectRatio = AspectRatio.values().first { it.value == value }
+
+fun aspectRatioBy(resolution: Resolution): AspectRatio =
+    aspectRatioBy(resolution.width.toFloat() / resolution.height.toFloat())
 
 enum class SurfaceType(val value: Int) {
     PREVIEW(CameraDevice.TEMPLATE_PREVIEW),
@@ -39,7 +53,8 @@ fun rotationOf(value: Int) = when (value) {
 
 data class SurfaceConfig(
     val resolutions: List<Resolution>,
-    val rotation: Rotation
+    val rotation: Rotation,
+    val previewAspectRatio: AspectRatio
 )
 
 data class TypedSurface(val type: SurfaceType, val surface: Surface)

@@ -1,17 +1,19 @@
 package tech.khana.reflekt.preview
 
 import android.content.Context
+import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.util.AttributeSet
 import android.view.Surface
 import android.view.TextureView
-import android.view.View.MeasureSpec.*
+import android.view.View.MeasureSpec.getSize
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import tech.khana.reflekt.core.*
+import tech.khana.reflekt.core.AspectRatio.AR_16X9
 
 
 const val MAX_PREVIEW_WIDTH = 1920
@@ -22,71 +24,80 @@ class ReflektPreview constructor(
     attrs: AttributeSet? = null
 ) : TextureView(ctx, attrs), ReflektSurface {
 
-    private var previewResolution: Resolution? = null
     private var previewRotation = Rotation._0
+    private var previewAspectRatio: AspectRatio = AR_16X9
 
     override val format: ReflektFormat = ReflektFormat.Clazz.Texture
 
     override suspend fun acquireSurface(config: SurfaceConfig): TypedSurface = coroutineScope {
-        val previewResolution = chooseOptimalResolution(config.resolutions)
         withContext(Dispatchers.Main) {
+            previewLogger.debug { "#acquireSurface" }
+            val previewResolution = config.resolutions
+                .chooseOptimalResolution(config.previewAspectRatio)
+            this@ReflektPreview.previewAspectRatio = config.previewAspectRatio
+            previewRotation = config.rotation
+
+            yield()
+
             val textureData = onSurfaceTextureAvailable()
-            this@ReflektPreview.previewResolution = previewResolution
             textureData.surfaceTexture.setDefaultBufferSize(
-                previewResolution.width,
-                previewResolution.height
+                previewResolution.width, previewResolution.height
             )
-//            configureTransform(textureData.resolution, previewResolution, config.rotation)
+            previewLogger.debug { "#acquireSurface acquired" }
             TypedSurface(SurfaceType.PREVIEW, Surface(textureData.surfaceTexture))
         }
     }
 
-    private fun chooseOptimalResolution(resolutions: List<Resolution>): Resolution =
-        resolutions.asSequence()
+    private fun List<Resolution>.chooseOptimalResolution(aspectRatio: AspectRatio): Resolution =
+        asSequence()
+            .filter { it.ratio == aspectRatio.value }
             .filter { it.width <= MAX_PREVIEW_WIDTH }
             .filter { it.height <= MAX_PREVIEW_HEIGHT }
             .sortedBy { it.area }
             .last()
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        previewLogger.debug { "#onMeasure" }
 
-        var widthSpec: Int = widthMeasureSpec
-        var heightSpec: Int = heightMeasureSpec
+        val width = getSize(widthMeasureSpec)
+        val height = getSize(heightMeasureSpec)
 
-        val resolution = previewResolution
-
-        if (resolution != null) {
-
-            val width = getSize(widthMeasureSpec)
-            val height = getSize(heightMeasureSpec)
-
-            val previewWidth = when (previewRotation) {
-                Rotation._0, Rotation._180 -> resolution.height
-                Rotation._90, Rotation._270 -> resolution.width
-            }
-            val previewHeight = when (previewRotation) {
-                Rotation._0, Rotation._180 -> resolution.width
-                Rotation._90, Rotation._270 -> resolution.height
-            }
-
-            val layoutParams = layoutParams
-
-            when {
-                layoutParams.width == MATCH_PARENT && layoutParams.height == WRAP_CONTENT -> {
-                    heightSpec = makeMeasureSpec(
-                        previewHeight * width / previewWidth, EXACTLY
-                    )
-                }
-                layoutParams.width == WRAP_CONTENT && layoutParams.height == MATCH_PARENT -> {
-                    widthSpec = makeMeasureSpec(
-                        previewWidth * height / previewHeight, EXACTLY
-                    )
-                }
-                else -> throw IllegalStateException()
-            }
+        val aspectRatio = when (previewRotation) {
+            Rotation._0, Rotation._180 -> previewAspectRatio.value
+            Rotation._90, Rotation._270 -> 1f / previewAspectRatio.value
         }
 
-        super.onMeasure(widthSpec, heightSpec)
+        val layoutParams = layoutParams
+
+        when (MATCH_PARENT) {
+            layoutParams.height -> {
+                val newWidth = (height / aspectRatio).toInt()
+                if (newWidth > width) {
+                    setTransform(Matrix().apply {
+                        postTranslate(-(newWidth - width) / 2f, 0f)
+                    })
+                }
+
+                previewLogger.debug {
+                    "#setMeasuredDimension(newWidth=$newWidth, height=$height)"
+                }
+                setMeasuredDimension(newWidth, height)
+            }
+            layoutParams.width -> {
+                val newHeight = (width * aspectRatio).toInt()
+                if (newHeight > height) {
+                    setTransform(Matrix().apply {
+                        postTranslate(0f, -(newHeight - height) / 2f)
+                    })
+                }
+
+                previewLogger.debug {
+                    "#setMeasuredDimension(width=$width, newHeight=$newHeight)"
+                }
+                setMeasuredDimension(width, newHeight)
+            }
+            else -> throw IllegalStateException()
+        }
     }
 
 
