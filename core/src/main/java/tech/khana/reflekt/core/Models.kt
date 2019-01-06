@@ -8,10 +8,12 @@ import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.view.Surface
 
-internal data class CameraConfiguration(
-    val surfaces: List<CameraSurface>,
-    val direct: Lens,
-    val rotation: Rotation
+data class UserSettings(
+    val surfaces: List<ReflektSurface>,
+    val rotation: Rotation,
+    val direct: Lens = Lens.FRONT,
+    val flashMode: FlashMode = FlashMode.OFF,
+    val supportLevel: SupportLevel = SupportLevel.LEGACY
 )
 
 enum class SurfaceType(val value: Int) {
@@ -39,14 +41,14 @@ data class SurfaceConfig(val resolutions: List<Resolution>, val rotation: Rotati
 
 data class TypedSurface(val type: SurfaceType, val surface: Surface)
 
-sealed class LensFormat {
+sealed class ReflektFormat {
 
-    sealed class Image(val format: Int) : LensFormat() {
+    sealed class Image(val format: Int) : ReflektFormat() {
         object Jpeg : Image(ImageFormat.JPEG)
         object Yuv : Image(ImageFormat.YUV_420_888)
     }
 
-    sealed class Clazz(val clazz: Class<out Any>) : LensFormat() {
+    sealed class Clazz(val clazz: Class<out Any>) : ReflektFormat() {
         object Texture : Clazz(SurfaceTexture::class.java)
         object ImageReader : Clazz(ImageReader::class.java)
     }
@@ -66,7 +68,7 @@ enum class Lens(val value: Int) {
 }
 
 @SuppressLint("InlinedApi")
-internal enum class SupportLevel(val value: Int, val description: String) {
+enum class SupportLevel(val value: Int, val description: String) {
     LEVEL_3(CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_3, "Level 3 support"),
     LEGACY(CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY, "Legacy support"),
     FULL(CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_FULL, "Full support"),
@@ -80,5 +82,6 @@ internal enum class SupportLevel(val value: Int, val description: String) {
 enum class FlashMode(val value: Int) {
     OFF(CaptureRequest.FLASH_MODE_OFF),
     PHOTO(CaptureRequest.FLASH_MODE_SINGLE),
-    TORCH(CaptureRequest.FLASH_MODE_TORCH)
+    TORCH(CaptureRequest.FLASH_MODE_TORCH),
+    SCREEN(777),
 }

@@ -17,9 +17,9 @@ const val MAX_PREVIEW_HEIGHT = 1080
 class ReflektPreview constructor(
     ctx: Context,
     attrs: AttributeSet
-) : TextureView(ctx, attrs), CameraSurface {
+) : TextureView(ctx, attrs), ReflektSurface {
 
-    override val format: LensFormat = LensFormat.Clazz.Texture
+    override val format: ReflektFormat = ReflektFormat.Clazz.Texture
 
     override suspend fun acquireSurface(config: SurfaceConfig): TypedSurface = coroutineScope {
         val previewResolution = choseOptimalResolution(config.resolutions)

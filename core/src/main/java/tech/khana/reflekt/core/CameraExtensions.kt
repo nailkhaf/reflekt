@@ -4,6 +4,7 @@ import android.content.Context
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata
+import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.util.Size
 import android.view.Surface
@@ -60,7 +61,7 @@ internal fun CameraManager.supportedLevel(cameraId: String): SupportLevel {
 internal fun Size.toResolution() = Resolution(width, height)
 
 
-internal fun Set<TypedSurface>.byType(type: SurfaceType): List<Surface> =
+internal fun List<TypedSurface>.byType(type: SurfaceType): List<Surface> =
     filter { it.type == type }
         .map { it.surface }
 
@@ -68,3 +69,6 @@ internal fun Lens.invert() = when (this) {
     Lens.FRONT -> Lens.BACK
     Lens.BACK -> Lens.FRONT
 }
+
+internal fun CaptureRequest.Builder.addAllSurfaces(list: List<Surface>) =
+    list.forEach { addTarget(it) }

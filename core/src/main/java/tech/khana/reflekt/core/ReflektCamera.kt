@@ -10,53 +10,66 @@ import kotlinx.coroutines.yield
 
 internal class ReflektCameraImpl(
     ctx: Context,
-    private val cameraConfiguration: CameraConfiguration,
-    private val handlerThread: HandlerThread = HandlerThread("").apply { start() }
+    userSettings: UserSettings,
+    private val handlerThread: HandlerThread = HandlerThread("").apply { start() },
+    private val settingsProvider: SettingsProvider = SettingsProviderImpl(userSettings),
+    private val requestFactory: RequestFactory =
+        RequestFactoryImpl(ctx.cameraManager, settingsProvider)
 ) : ReflektCamera {
 
     private val cameraManager = ctx.cameraManager
-
-    private val requestFactory by lazy { RequestFactory(cameraManager) }
 
     private val cameraDispatcher = Handler(handlerThread.looper).asCoroutineDispatcher("")
 
     private var reflektDevice: ReflektDevice? = null
 
+    private val userSettings: UserSettings
+        get() = settingsProvider.currentSettings
+
     override suspend fun open() = coroutineScope {
+        withContext(cameraDispatcher) {
 
-        val cameraId = cameraManager.findCameraByDirect(cameraConfiguration.direct)
+            check(reflektDevice == null) { "camera already is opened" }
 
-        val supportedLevel = cameraManager.supportedLevel(cameraId)
-        cameraLogger.debug { "supported level=${supportedLevel.description}" }
+            val cameraId = cameraManager.findCameraByDirect(userSettings.direct)
 
-        val surfaces = cameraConfiguration.surfaces.map { cameraSurface ->
-            yield()
+            settingsProvider.supportLevel(cameraManager.supportedLevel(cameraId))
+            cameraLogger.debug { "supported level=${userSettings.supportLevel.description}" }
 
-            val format = cameraSurface.format
-            val outputResolutions = when (format) {
-                is LensFormat.Image -> cameraManager.outputResolutions(cameraId, format.format)
-                is LensFormat.Clazz -> cameraManager.outputResolutions(cameraId, format.clazz)
+            val surfaces = userSettings.surfaces.map { cameraSurface ->
+                yield()
+
+                val format = cameraSurface.format
+                val outputResolutions = when (format) {
+                    is ReflektFormat.Image -> cameraManager.outputResolutions(
+                        cameraId,
+                        format.format
+                    )
+                    is ReflektFormat.Clazz -> cameraManager.outputResolutions(
+                        cameraId,
+                        format.clazz
+                    )
+                }
+
+                val surfaceConfig = SurfaceConfig(outputResolutions, userSettings.rotation)
+
+                val typedSurface = cameraSurface.acquireSurface(surfaceConfig)
+
+                require(cameraManager.surfaceSupported(cameraId, typedSurface.surface))
+                { "surface is not supported" }
+
+                typedSurface
             }
 
-            val surfaceConfig = SurfaceConfig(outputResolutions, cameraConfiguration.rotation)
+            val cameraDevice = cameraManager.openCamera(handlerThread)
 
-            val typedSurface = cameraSurface.acquireSurface(surfaceConfig)
-
-            require(cameraManager.surfaceSupported(cameraId, typedSurface.surface))
-            { "surface is not supported" }
-
-            typedSurface
-        }
-
-        val cameraDevice = cameraManager.openCamera(handlerThread)
-        withContext(cameraDispatcher) {
             reflektDevice = ReflektDeviceImpl(
                 cameraDevice, requestFactory, surfaces, handlerThread
             )
         }
     }
 
-    override suspend fun startPreview() {
+    override suspend fun startPreview() = coroutineScope {
         withContext(cameraDispatcher) {
             val device = reflektDevice
             check(device != null) { "camera is not opened" }
@@ -64,7 +77,7 @@ internal class ReflektCameraImpl(
         }
     }
 
-    override suspend fun stop() {
+    override suspend fun stop() = coroutineScope {
         withContext(cameraDispatcher) {
             val device = reflektDevice
             check(device != null) { "camera is not opened" }
@@ -72,6 +85,7 @@ internal class ReflektCameraImpl(
         }
     }
 
-    override fun getAvailableLenses(): List<Lens> =
+    override suspend fun getAvailableLenses(): List<Lens> = coroutineScope {
         cameraManager.cameraIdList.map { cameraManager.directCamera(it) }
+    }
 }
