@@ -19,8 +19,8 @@ internal class RequestFactoryImpl(
         .apply {
             // val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraDevice.id)
             val settings = userSettings
-            set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
-            set(CaptureRequest.FLASH_MODE, settings.flashMode.value)
+//            set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
+//            set(CaptureRequest.FLASH_MODE, settings.flashMode.value)
         }
         .build()
 
@@ -31,8 +31,8 @@ internal class RequestFactoryImpl(
         .apply {
             // val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraDevice.id)
             val settings = userSettings
-            set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
-            set(CaptureRequest.FLASH_MODE, settings.flashMode.value)
+//            set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
+//            set(CaptureRequest.FLASH_MODE, settings.flashMode.value)
         }
         .build()
 
@@ -63,8 +63,8 @@ internal class RequestFactoryImpl(
     }
 
     private fun CaptureRequest.Builder.setPreviewAntibandingMode(cameraCharacteristics: CameraCharacteristics) {
-        val aeAntiBandingModes =
-            cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_ANTIBANDING_MODES)!!
+        val aeAntiBandingModes = cameraCharacteristics
+            .get(CameraCharacteristics.CONTROL_AE_AVAILABLE_ANTIBANDING_MODES)!!
         val aeAntiBandingMode =
             AntiBandingMode.values().first { aeAntiBandingModes.contains(it.value) }
         set(CaptureRequest.CONTROL_AE_MODE, aeAntiBandingMode.value)

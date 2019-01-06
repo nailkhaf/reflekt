@@ -57,6 +57,9 @@ internal class ReflektDeviceImpl(
 
     override suspend fun release() = coroutineScope {
         cameraLogger.debug { "device #release" }
+        currentSession?.stopRepeating()
+        currentSession?.abortCaptures()
+        currentSession?.close()
         cameraDevice.close()
         surfaces.forEach { it.surface.release() }
     }

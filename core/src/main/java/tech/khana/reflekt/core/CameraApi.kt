@@ -22,6 +22,8 @@ interface ReflektCamera {
 
     suspend fun startPreview()
 
+    suspend fun stopPreview()
+
     suspend fun stop()
 
     suspend fun getAvailableLenses(): List<Lens>

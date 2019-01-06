@@ -43,17 +43,16 @@ class ReflektCameraImpl(
                 val format = cameraSurface.format
                 val outputResolutions = when (format) {
                     is ReflektFormat.Image -> cameraManager.outputResolutions(
-                        cameraId,
-                        format.format
+                        cameraId, format.format
                     )
                     is ReflektFormat.Clazz -> cameraManager.outputResolutions(
-                        cameraId,
-                        format.clazz
+                        cameraId, format.clazz
                     )
                 }
 
                 val surfaceConfig = SurfaceConfig(outputResolutions, userSettings.rotation)
 
+//                cameraSurface.acquireSurface(surfaceConfig).surface.release()
                 val typedSurface = cameraSurface.acquireSurface(surfaceConfig)
 
                 require(cameraManager.surfaceSupported(cameraId, typedSurface.surface))
@@ -79,10 +78,20 @@ class ReflektCameraImpl(
         }
     }
 
+    override suspend fun stopPreview() {
+        cameraLogger.debug { "#stopPreview" }
+        withContext(cameraDispatcher) {
+            val device = reflektDevice
+            check(device != null) { "camera is not opened" }
+            device.stopPreview()
+        }
+    }
+
     override suspend fun stop() = coroutineScope {
         cameraLogger.debug { "#stop" }
         withContext(cameraDispatcher) {
             reflektDevice?.release()
+            reflektDevice = null
         }
         Unit
     }

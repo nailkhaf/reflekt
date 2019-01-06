@@ -37,7 +37,10 @@ fun rotationOf(value: Int) = when (value) {
     else -> throw IllegalArgumentException("unknown rotation")
 }
 
-data class SurfaceConfig(val resolutions: List<Resolution>, val rotation: Rotation)
+data class SurfaceConfig(
+    val resolutions: List<Resolution>,
+    val rotation: Rotation
+)
 
 data class TypedSurface(val type: SurfaceType, val surface: Surface)
 
