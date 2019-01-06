@@ -56,10 +56,10 @@ internal suspend fun CameraCaptureSession.capture(
 
 
 @SuppressLint("MissingPermission")
-internal suspend fun CameraManager.openCamera(thread: HandlerThread) =
+internal suspend fun CameraManager.openCamera(cameraId: String, thread: HandlerThread) =
     suspendCoroutine<CameraDevice> { continuation ->
 
-        openCamera("", object : CameraDevice.StateCallback() {
+        openCamera(cameraId, object : CameraDevice.StateCallback() {
 
             override fun onOpened(camera: CameraDevice) {
                 continuation.resume(camera)
@@ -67,7 +67,7 @@ internal suspend fun CameraManager.openCamera(thread: HandlerThread) =
 
             override fun onDisconnected(camera: CameraDevice) {
                 camera.close()
-                continuation.resumeWithException(CameraException.CameraUnknownException())
+//                continuation.resumeWithException(CameraException.CameraUnknownException())
             }
 
             override fun onError(camera: CameraDevice, error: Int) {

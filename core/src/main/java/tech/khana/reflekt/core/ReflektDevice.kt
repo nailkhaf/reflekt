@@ -18,10 +18,12 @@ internal class ReflektDeviceImpl(
     private var currentSession: CameraCaptureSession? = null
 
     override suspend fun open() = coroutineScope {
+        cameraLogger.debug { "device #open" }
         currentSession = cameraDevice.createCaptureSession(surfaces.all, handlerThread)
     }
 
     override suspend fun startPreview() = coroutineScope {
+        cameraLogger.debug { "device #startPreview" }
         val session = currentSession
         check(session != null) { "session is not started" }
         with(requestFactory) {
@@ -33,6 +35,7 @@ internal class ReflektDeviceImpl(
     }
 
     override suspend fun stopPreview() = coroutineScope {
+        cameraLogger.debug { "device #stopPreview" }
         val session = currentSession
         check(session != null) { "session is not started" }
         session.abortCaptures()
@@ -40,6 +43,7 @@ internal class ReflektDeviceImpl(
     }
 
     override suspend fun capture() = coroutineScope {
+        cameraLogger.debug { "device #capture" }
         val session = currentSession
         check(session != null) { "session is not started" }
         session.abortCaptures()
@@ -52,6 +56,7 @@ internal class ReflektDeviceImpl(
     }
 
     override suspend fun release() = coroutineScope {
+        cameraLogger.debug { "device #release" }
         cameraDevice.close()
         surfaces.forEach { it.surface.release() }
     }

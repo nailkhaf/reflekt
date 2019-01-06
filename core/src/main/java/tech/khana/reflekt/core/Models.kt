@@ -29,7 +29,7 @@ enum class Rotation {
     _270
 }
 
-internal fun rotationOf(value: Int) = when (value) {
+fun rotationOf(value: Int) = when (value) {
     Surface.ROTATION_0 -> Rotation._0
     Surface.ROTATION_90 -> Rotation._90
     Surface.ROTATION_180 -> Rotation._180

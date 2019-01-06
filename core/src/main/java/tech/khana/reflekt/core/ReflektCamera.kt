@@ -8,7 +8,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 
-internal class ReflektCameraImpl(
+class ReflektCameraImpl(
     ctx: Context,
     userSettings: UserSettings,
     private val handlerThread: HandlerThread = HandlerThread("").apply { start() },
@@ -27,6 +27,7 @@ internal class ReflektCameraImpl(
         get() = settingsProvider.currentSettings
 
     override suspend fun open() = coroutineScope {
+        cameraLogger.debug { "#open" }
         withContext(cameraDispatcher) {
 
             check(reflektDevice == null) { "camera already is opened" }
@@ -61,15 +62,16 @@ internal class ReflektCameraImpl(
                 typedSurface
             }
 
-            val cameraDevice = cameraManager.openCamera(handlerThread)
+            val cameraDevice = cameraManager.openCamera(cameraId, handlerThread)
 
             reflektDevice = ReflektDeviceImpl(
                 cameraDevice, requestFactory, surfaces, handlerThread
-            )
+            ).apply { open() }
         }
     }
 
     override suspend fun startPreview() = coroutineScope {
+        cameraLogger.debug { "#startPreview" }
         withContext(cameraDispatcher) {
             val device = reflektDevice
             check(device != null) { "camera is not opened" }
@@ -78,11 +80,11 @@ internal class ReflektCameraImpl(
     }
 
     override suspend fun stop() = coroutineScope {
+        cameraLogger.debug { "#stop" }
         withContext(cameraDispatcher) {
-            val device = reflektDevice
-            check(device != null) { "camera is not opened" }
-            device.release()
+            reflektDevice?.release()
         }
+        Unit
     }
 
     override suspend fun getAvailableLenses(): List<Lens> = coroutineScope {

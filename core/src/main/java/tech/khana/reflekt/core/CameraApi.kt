@@ -37,7 +37,7 @@ interface ReflektSurface {
     }
 }
 
-internal interface SettingsProvider {
+interface SettingsProvider {
 
     val currentSettings: UserSettings
 
@@ -46,7 +46,7 @@ internal interface SettingsProvider {
     fun supportLevel(supportLevel: SupportLevel)
 }
 
-internal interface RequestFactory {
+interface RequestFactory {
 
     fun CameraDevice.createPreviewRequest(block: CaptureRequest.Builder.() -> Unit): CaptureRequest
 

@@ -6,6 +6,7 @@ import android.graphics.SurfaceTexture
 import android.util.AttributeSet
 import android.view.Surface
 import android.view.TextureView
+import android.widget.FrameLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
@@ -16,15 +17,21 @@ const val MAX_PREVIEW_HEIGHT = 1080
 
 class ReflektPreview constructor(
     ctx: Context,
-    attrs: AttributeSet
-) : TextureView(ctx, attrs), ReflektSurface {
+    attrs: AttributeSet? = null
+) : FrameLayout(ctx, attrs), ReflektSurface {
+
+    private val textureView = TextureView(ctx)
+
+    init {
+        addView(textureView)
+    }
 
     override val format: ReflektFormat = ReflektFormat.Clazz.Texture
 
     override suspend fun acquireSurface(config: SurfaceConfig): TypedSurface = coroutineScope {
         val previewResolution = choseOptimalResolution(config.resolutions)
         withContext(Dispatchers.Main) {
-            val textureData = onSurfaceTextureAvailable()
+            val textureData = textureView.onSurfaceTextureAvailable()
             configureTransform(textureData.resolution, previewResolution, config.rotation)
             TypedSurface(SurfaceType.PREVIEW, Surface(textureData.surfaceTexture))
         }
@@ -43,7 +50,7 @@ class ReflektPreview constructor(
         previewResolution: Resolution,
         rotation: Rotation
     ) {
-        setTransform(Matrix().apply {
+        textureView.setTransform(Matrix().apply {
 
             val centerX = screenResolution.width * 0.5f
             val centerY = screenResolution.height * 0.5f
@@ -79,8 +86,10 @@ class ReflektPreview constructor(
             val scaleFactor: Float = screenAspectRatio / previewAspectRatio
 
             val heightCorrection = when (rotation) {
-                Rotation._0, Rotation._180 -> (screenHeight.toFloat() * scaleFactor - screenHeight.toFloat()) / 2f
-                Rotation._90, Rotation._270 -> (screenWidth.toFloat() * scaleFactor - screenWidth.toFloat()) / 2f
+                Rotation._0, Rotation._180 -> (screenHeight.toFloat() * scaleFactor -
+                        screenHeight.toFloat()) / 2f
+                Rotation._90, Rotation._270 -> (screenWidth.toFloat() * scaleFactor -
+                        screenWidth.toFloat()) / 2f
             }
 
             postScale(scaleFactor, 1f)
