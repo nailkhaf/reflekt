@@ -2,7 +2,6 @@ package tech.khana.reflekt.preview
 
 import android.graphics.SurfaceTexture
 import android.view.TextureView
-import tech.khana.reflekt.core.Resolution
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 

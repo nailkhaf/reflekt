@@ -1,6 +1,5 @@
 package tech.khana.reflekt.core
 
-import android.graphics.Color
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraDevice
 import android.os.HandlerThread
