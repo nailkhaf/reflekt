@@ -2,6 +2,7 @@ package tech.khana.reflekt
 
 import android.Manifest.permission.*
 import android.content.pm.PackageManager.PERMISSION_GRANTED
+import android.graphics.Color
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
@@ -17,6 +18,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        window.decorView.setBackgroundColor(Color.BLACK)
+
         window.decorView.setOnSystemUiVisibilityChangeListener {
             when (it) {
                 SYSTEM_UI_FLAG_VISIBLE -> {
@@ -26,12 +29,6 @@ class MainActivity : AppCompatActivity() {
                             hideSystemUI()
                         }
                     }
-                }
-                SYSTEM_UI_FLAG_LOW_PROFILE -> {
-                }
-                SYSTEM_UI_FLAG_HIDE_NAVIGATION -> {
-                }
-                SYSTEM_UI_FLAG_FULLSCREEN -> {
                 }
             }
         }

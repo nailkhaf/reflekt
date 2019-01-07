@@ -1,14 +1,49 @@
 package tech.khana.reflekt.core
 
-internal class SettingsProviderImpl(userSettings: UserSettings) : SettingsProvider {
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 
-    override var currentSettings: UserSettings = userSettings
+internal class SettingsProviderImpl(
+    userSettings: UserSettings,
+    private val dispatcher: CoroutineDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+) : SettingsProvider {
 
-    override fun flash(flashMode: FlashMode) {
-        currentSettings = currentSettings.copy(flashMode = flashMode)
+    override val currentSettings: UserSettings
+        get() = _currentSettings.get()
+
+    private val _currentSettings = AtomicReference(userSettings)
+
+    override suspend fun flash(flashMode: FlashMode) = coroutineScope {
+        withContext(dispatcher) {
+            _currentSettings.set(currentSettings.copy(flashMode = flashMode))
+        }
     }
 
-    override fun supportLevel(supportLevel: SupportLevel) {
-        currentSettings = currentSettings.copy(supportLevel = supportLevel)
+    override suspend fun supportLevel(supportLevel: SupportLevel) = coroutineScope {
+        withContext(dispatcher) {
+            _currentSettings.set(currentSettings.copy(supportLevel = supportLevel))
+        }
+    }
+
+    override suspend fun previewActive(active: Boolean) = coroutineScope {
+        withContext(dispatcher) {
+            _currentSettings.set(currentSettings.copy(previewActive = active))
+        }
+    }
+
+    override suspend fun previewAspectRation(aspectRatio: AspectRatio) = coroutineScope {
+        withContext(dispatcher) {
+            _currentSettings.set(currentSettings.copy(previewAspectRatio = aspectRatio))
+        }
+    }
+
+    override suspend fun sessionActive(active: Boolean) = coroutineScope {
+        withContext(dispatcher) {
+            _currentSettings.set(currentSettings.copy(sessionActive = active))
+        }
     }
 }

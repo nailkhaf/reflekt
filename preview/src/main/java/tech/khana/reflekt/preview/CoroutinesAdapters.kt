@@ -7,11 +7,10 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 internal suspend fun TextureView.onSurfaceTextureAvailable() =
-    suspendCoroutine<TextureData> { continuation ->
+    suspendCoroutine<SurfaceTexture> { continuation ->
 
         if (isAvailable) {
-            val resolution = Resolution(width, height)
-            continuation.resume(TextureData(resolution, surfaceTexture))
+            continuation.resume(surfaceTexture)
             return@suspendCoroutine
         }
 
@@ -20,8 +19,7 @@ internal suspend fun TextureView.onSurfaceTextureAvailable() =
             override fun onSurfaceTextureAvailable(
                 surface: SurfaceTexture, width: Int, height: Int
             ) {
-                val resolution = Resolution(width, height)
-                continuation.resume(TextureData(resolution, surface))
+                continuation.resume(surface)
             }
 
             override fun onSurfaceTextureSizeChanged(

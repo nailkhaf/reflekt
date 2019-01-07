@@ -1,5 +1,6 @@
 package tech.khana.reflekt
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.LayoutInflater
@@ -40,12 +41,15 @@ class CameraFragment : Fragment(), CoroutineScope {
         preview = reflektCamera
         preview.setOnClickListener {
             launch {
-                if (toggle) {
-                    camera.startPreview()
-                } else {
-                    camera.stopPreview()
-                }
                 toggle = toggle.not()
+                when (toggle) {
+                    true -> {
+                        cameraControls.visibility = View.VISIBLE
+                    }
+                    false -> {
+                        cameraControls.visibility = View.INVISIBLE
+                    }
+                }
             }
         }
 
@@ -56,22 +60,37 @@ class CameraFragment : Fragment(), CoroutineScope {
                 rotation = rotation
             )
         )
+
+
+        val builder = AlertDialog.Builder(requireActivity()).apply {
+            setTitle(R.string.pick_aspect_ratio)
+        }
+        aspectRatioButton.setOnClickListener {
+            launch {
+                val aspectRatios = camera.availablePreviewAspectRatios()
+                builder.setItems(aspectRatios.map { it.name }.toTypedArray()) { _, id ->
+                    this@CameraFragment.launch {
+                        camera.previewAspectRatio(aspectRatios[id])
+                    }
+                }
+                builder.show()
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
-
         launch {
             camera.open()
+            camera.startSession()
             camera.startPreview()
         }
     }
 
     override fun onPause() {
         super.onPause()
-
         runBlocking {
-            camera.stop()
+            camera.close()
         }
     }
 

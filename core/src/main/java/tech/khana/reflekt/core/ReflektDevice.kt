@@ -1,5 +1,6 @@
 package tech.khana.reflekt.core
 
+import android.graphics.Color
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraDevice
 import android.os.HandlerThread
@@ -11,21 +12,26 @@ import tech.khana.reflekt.core.SurfaceType.PREVIEW
 internal class ReflektDeviceImpl(
     private val cameraDevice: CameraDevice,
     private val requestFactory: RequestFactory,
-    private val surfaces: List<TypedSurface> = emptyList(),
+    override val cameraId: String,
     private val handlerThread: HandlerThread = HandlerThread("").apply { start() }
 ) : ReflektDevice {
 
     private var currentSession: CameraCaptureSession? = null
+    private var currentSurfaces: List<TypedSurface>? = null
 
-    override suspend fun open() = coroutineScope {
+    override suspend fun startSession(surfaces: List<TypedSurface>) = coroutineScope {
         cameraLogger.debug { "device #open" }
+        this@ReflektDeviceImpl.currentSurfaces = surfaces
         currentSession = cameraDevice.createCaptureSession(surfaces.all, handlerThread)
     }
 
     override suspend fun startPreview() = coroutineScope {
         cameraLogger.debug { "device #startPreview" }
         val session = currentSession
+        val surfaces = currentSurfaces
         check(session != null) { "session is not started" }
+        check(surfaces != null) { "surfaces is null" }
+
         with(requestFactory) {
             val previewRequest = cameraDevice.createPreviewRequest {
                 addAllSurfaces(surfaces.byType(PREVIEW))
@@ -45,7 +51,10 @@ internal class ReflektDeviceImpl(
     override suspend fun capture() = coroutineScope {
         cameraLogger.debug { "device #capture" }
         val session = currentSession
+        val surfaces = currentSurfaces
         check(session != null) { "session is not started" }
+        check(surfaces != null) { "surfaces is null" }
+
         session.abortCaptures()
         with(requestFactory) {
             val previewRequest = cameraDevice.createStillRequest {
@@ -55,13 +64,21 @@ internal class ReflektDeviceImpl(
         }
     }
 
-    override suspend fun release() = coroutineScope {
-        cameraLogger.debug { "device #release" }
+    override suspend fun stopSession() = coroutineScope {
         currentSession?.stopRepeating()
         currentSession?.abortCaptures()
         currentSession?.close()
+        currentSurfaces?.map { it.surface.release() }
+        currentSession = null
+        currentSurfaces = null
+    }
+
+    override suspend fun release() = coroutineScope {
+        cameraLogger.debug { "device #release" }
+        check(currentSession == null) { "session is not stopped" }
+        check(currentSurfaces == null) { "surfaces is not released" }
+
         cameraDevice.close()
-        surfaces.forEach { it.surface.release() }
     }
 }
 

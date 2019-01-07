@@ -1,19 +1,22 @@
 package tech.khana.reflekt.preview
 
 import android.content.Context
-import android.graphics.Matrix
-import android.graphics.SurfaceTexture
+import android.graphics.*
 import android.util.AttributeSet
 import android.view.Surface
 import android.view.TextureView
+import android.view.View
 import android.view.View.MeasureSpec.getSize
+import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
+import android.widget.FrameLayout
+import android.widget.TextView
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
 import tech.khana.reflekt.core.*
 import tech.khana.reflekt.core.AspectRatio.AR_16X9
+import tech.khana.reflekt.preview.Side.HEIGHT
+import tech.khana.reflekt.preview.Side.WIDTH
 
 
 const val MAX_PREVIEW_WIDTH = 1920
@@ -29,22 +32,39 @@ class ReflektPreview constructor(
 
     override val format: ReflektFormat = ReflektFormat.Clazz.Texture
 
+    private val layoutMutex = Mutex()
+
+    private val textureMatrix = Matrix()
+
+    private val textureView = TextureView(context).apply {
+        layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+    }
+    private val placeHolder = View(context).apply {
+        layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+    }
+
+//    init {
+//        addView(textureView)
+//    }
+
     override suspend fun acquireSurface(config: SurfaceConfig): TypedSurface = coroutineScope {
+        previewLogger.debug { "#acquireSurface" }
         withContext(Dispatchers.Main) {
-            previewLogger.debug { "#acquireSurface" }
             val previewResolution = config.resolutions
                 .chooseOptimalResolution(config.previewAspectRatio)
             this@ReflektPreview.previewAspectRatio = config.previewAspectRatio
             previewRotation = config.rotation
 
-            yield()
+            requestLayout()
+            layoutMutex.twiceLock()
 
-            val textureData = onSurfaceTextureAvailable()
-            textureData.surfaceTexture.setDefaultBufferSize(
+            val surfaceTexture = onSurfaceTextureAvailable()
+            surfaceTexture.setDefaultBufferSize(
                 previewResolution.width, previewResolution.height
             )
+
             previewLogger.debug { "#acquireSurface acquired" }
-            TypedSurface(SurfaceType.PREVIEW, Surface(textureData.surfaceTexture))
+            TypedSurface(SurfaceType.PREVIEW, Surface(surfaceTexture))
         }
     }
 
@@ -62,41 +82,68 @@ class ReflektPreview constructor(
         val width = getSize(widthMeasureSpec)
         val height = getSize(heightMeasureSpec)
 
-        val aspectRatio = when (previewRotation) {
+        val previewAspectRatio = when (previewRotation) {
             Rotation._0, Rotation._180 -> previewAspectRatio.value
             Rotation._90, Rotation._270 -> 1f / previewAspectRatio.value
         }
 
-        val layoutParams = layoutParams
+        when {
+            layoutParams.width == MATCH_PARENT && layoutParams.height == MATCH_PARENT -> {
+                val viewAspectRation = width.toFloat() / height.toFloat()
+                if (viewAspectRation <= previewAspectRatio) {
+                    onMeasureByMatchParent(width, height, previewAspectRatio, HEIGHT)
+                } else {
+                    onMeasureByMatchParent(width, height, previewAspectRatio, WIDTH)
+                }
+            }
+            layoutParams.height == MATCH_PARENT ->
+                onMeasureByMatchParent(width, height, previewAspectRatio, HEIGHT)
+            layoutParams.width == MATCH_PARENT ->
+                onMeasureByMatchParent(width, height, previewAspectRatio, WIDTH)
+            else -> throw IllegalStateException("unknown layout settings")
+        }
+    }
 
-        when (MATCH_PARENT) {
-            layoutParams.height -> {
-                val newWidth = (height / aspectRatio).toInt()
+    private fun onMeasureByMatchParent(
+        width: Int, height: Int, aspectRatio: Float, side: Side
+    ) = when (side) {
+        HEIGHT -> {
+            val newWidth = (height / aspectRatio).toInt()
+            setTransform(textureMatrix.apply {
+                reset()
                 if (newWidth > width) {
-                    setTransform(Matrix().apply {
-                        postTranslate(-(newWidth - width) / 2f, 0f)
-                    })
+                    postTranslate(-(newWidth - width) / 2f, 0f)
+//                    postScale(0.5f, 0.5f, width / 2f, height / 2f)
                 }
+            })
 
-                previewLogger.debug {
-                    "#setMeasuredDimension(newWidth=$newWidth, height=$height)"
-                }
-                setMeasuredDimension(newWidth, height)
+            previewLogger.debug {
+                "#setMeasuredDimension(newWidth=$newWidth, height=$height)"
             }
-            layoutParams.width -> {
-                val newHeight = (width * aspectRatio).toInt()
+            setMeasuredDimension(newWidth, height)
+        }
+        WIDTH -> {
+            val newHeight = (width * aspectRatio).toInt()
+            setTransform(textureMatrix.apply {
+                reset()
                 if (newHeight > height) {
-                    setTransform(Matrix().apply {
-                        postTranslate(0f, -(newHeight - height) / 2f)
-                    })
+                    postTranslate(0f, -(newHeight - height) / 2f)
+//                    postScale(0.5f, 0.5f, width / 2f, height / 2f)
                 }
+            })
 
-                previewLogger.debug {
-                    "#setMeasuredDimension(width=$width, newHeight=$newHeight)"
-                }
-                setMeasuredDimension(width, newHeight)
+            previewLogger.debug {
+                "#setMeasuredDimension(width=$width, newHeight=$newHeight)"
             }
-            else -> throw IllegalStateException()
+            setMeasuredDimension(width, newHeight)
+        }
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        previewLogger.debug { "#onLayout" }
+        super.onLayout(changed, left, top, right, bottom)
+        if (layoutMutex.isLocked) {
+            layoutMutex.unlock()
         }
     }
 
@@ -189,11 +236,19 @@ class ReflektPreview constructor(
 //    }
 }
 
-internal data class TextureData(val resolution: Resolution, val surfaceTexture: SurfaceTexture)
-
 internal val previewLogger = object : Tag {
 
     override val tag: String = "ReflektPreview"
 
     override val level: LogLevel = LogLevel.DEFAULT
+}
+
+private suspend fun Mutex.twiceLock() {
+    lock()
+    lock()
+}
+
+private enum class Side {
+    HEIGHT,
+    WIDTH
 }

@@ -7,15 +7,17 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.view.Surface
-import tech.khana.reflekt.core.AspectRatio.AR_1X1
+import tech.khana.reflekt.core.AspectRatio.AR_4X3
 
 data class UserSettings(
     val surfaces: List<ReflektSurface>,
     val rotation: Rotation,
-    val previewAspectRatio: AspectRatio = AR_1X1,
+    val previewAspectRatio: AspectRatio = AR_4X3,
     val direct: Lens = Lens.FRONT,
     val flashMode: FlashMode = FlashMode.OFF,
-    val supportLevel: SupportLevel = SupportLevel.LEGACY
+    val supportLevel: SupportLevel = SupportLevel.LEGACY,
+    val previewActive: Boolean = false,
+    val sessionActive: Boolean = false
 )
 
 enum class AspectRatio(val value: Float) {
