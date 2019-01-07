@@ -20,7 +20,7 @@ internal class ReflektDeviceImpl(
     private var currentSurfaces: List<TypedSurface>? = null
 
     override suspend fun startSession(surfaces: List<TypedSurface>) = coroutineScope {
-        cameraLogger.debug { "device #open" }
+        cameraLogger.debug { "device #startSession" }
         this@ReflektDeviceImpl.currentSurfaces = surfaces
         currentSession = cameraDevice.createCaptureSession(surfaces.all, handlerThread)
     }
@@ -65,6 +65,7 @@ internal class ReflektDeviceImpl(
     }
 
     override suspend fun stopSession() = coroutineScope {
+        cameraLogger.debug { "device #stopSession" }
         currentSession?.stopRepeating()
         currentSession?.abortCaptures()
         currentSession?.close()

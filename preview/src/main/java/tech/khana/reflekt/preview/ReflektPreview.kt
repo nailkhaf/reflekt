@@ -9,6 +9,7 @@ import android.view.View
 import android.view.View.MeasureSpec.getSize
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
 import android.widget.TextView
 import kotlinx.coroutines.*
@@ -25,7 +26,7 @@ const val MAX_PREVIEW_HEIGHT = 1080
 class ReflektPreview constructor(
     ctx: Context,
     attrs: AttributeSet? = null
-) : TextureView(ctx, attrs), ReflektSurface {
+) : FrameLayout(ctx, attrs), ReflektSurface {
 
     private var previewRotation = Rotation._0
     private var previewAspectRatio: AspectRatio = AR_16X9
@@ -33,19 +34,23 @@ class ReflektPreview constructor(
     override val format: ReflektFormat = ReflektFormat.Clazz.Texture
 
     private val layoutMutex = Mutex()
-
     private val textureMatrix = Matrix()
+    private val mutableSize: MutableSize = MutableSize()
 
     private val textureView = TextureView(context).apply {
         layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
     }
-    private val placeHolder = View(context).apply {
-        layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-    }
 
-//    init {
-//        addView(textureView)
-//    }
+    init {
+        addView(textureView)
+
+        addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            previewLogger.debug { "#onLayout" }
+            if (layoutMutex.isLocked) {
+                layoutMutex.unlock()
+            }
+        }
+    }
 
     override suspend fun acquireSurface(config: SurfaceConfig): TypedSurface = coroutineScope {
         previewLogger.debug { "#acquireSurface" }
@@ -58,7 +63,7 @@ class ReflektPreview constructor(
             requestLayout()
             layoutMutex.twiceLock()
 
-            val surfaceTexture = onSurfaceTextureAvailable()
+            val surfaceTexture = textureView.onSurfaceTextureAvailable()
             surfaceTexture.setDefaultBufferSize(
                 previewResolution.width, previewResolution.height
             )
@@ -87,7 +92,7 @@ class ReflektPreview constructor(
             Rotation._90, Rotation._270 -> 1f / previewAspectRatio.value
         }
 
-        when {
+        val (newWidth, newHeight) = when {
             layoutParams.width == MATCH_PARENT && layoutParams.height == MATCH_PARENT -> {
                 val viewAspectRation = width.toFloat() / height.toFloat()
                 if (viewAspectRation <= previewAspectRatio) {
@@ -96,20 +101,33 @@ class ReflektPreview constructor(
                     onMeasureByMatchParent(width, height, previewAspectRatio, WIDTH)
                 }
             }
-            layoutParams.height == MATCH_PARENT ->
+            layoutParams.width == WRAP_CONTENT && layoutParams.height == WRAP_CONTENT -> {
+                val viewAspectRation = width.toFloat() / height.toFloat()
+                if (viewAspectRation >= previewAspectRatio) {
+                    onMeasureByMatchParent(width, height, previewAspectRatio, HEIGHT)
+                } else {
+                    onMeasureByMatchParent(width, height, previewAspectRatio, WIDTH)
+                }
+            }
+            layoutParams.width == WRAP_CONTENT && layoutParams.height == MATCH_PARENT ->
                 onMeasureByMatchParent(width, height, previewAspectRatio, HEIGHT)
-            layoutParams.width == MATCH_PARENT ->
+            layoutParams.width == MATCH_PARENT && layoutParams.height == WRAP_CONTENT ->
                 onMeasureByMatchParent(width, height, previewAspectRatio, WIDTH)
             else -> throw IllegalStateException("unknown layout settings")
         }
+
+        super.onMeasure(
+            MeasureSpec.makeMeasureSpec(newWidth, MeasureSpec.EXACTLY),
+            MeasureSpec.makeMeasureSpec(newHeight, MeasureSpec.EXACTLY)
+        )
     }
 
     private fun onMeasureByMatchParent(
         width: Int, height: Int, aspectRatio: Float, side: Side
-    ) = when (side) {
+    ): MutableSize = when (side) {
         HEIGHT -> {
             val newWidth = (height / aspectRatio).toInt()
-            setTransform(textureMatrix.apply {
+            textureView.setTransform(textureMatrix.apply {
                 reset()
                 if (newWidth > width) {
                     postTranslate(-(newWidth - width) / 2f, 0f)
@@ -120,11 +138,14 @@ class ReflektPreview constructor(
             previewLogger.debug {
                 "#setMeasuredDimension(newWidth=$newWidth, height=$height)"
             }
-            setMeasuredDimension(newWidth, height)
+            mutableSize.apply {
+                this.width = newWidth
+                this.height = height
+            }
         }
         WIDTH -> {
             val newHeight = (width * aspectRatio).toInt()
-            setTransform(textureMatrix.apply {
+            textureView.setTransform(textureMatrix.apply {
                 reset()
                 if (newHeight > height) {
                     postTranslate(0f, -(newHeight - height) / 2f)
@@ -135,18 +156,12 @@ class ReflektPreview constructor(
             previewLogger.debug {
                 "#setMeasuredDimension(width=$width, newHeight=$newHeight)"
             }
-            setMeasuredDimension(width, newHeight)
+            mutableSize.apply {
+                this.width = width
+                this.height = newHeight
+            }
         }
     }
-
-    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
-        previewLogger.debug { "#onLayout" }
-        super.onLayout(changed, left, top, right, bottom)
-        if (layoutMutex.isLocked) {
-            layoutMutex.unlock()
-        }
-    }
-
 
 //    private fun configureTransform(
 //        screenResolution: Resolution,
@@ -252,3 +267,5 @@ private enum class Side {
     HEIGHT,
     WIDTH
 }
+
+data class MutableSize(var width: Int = 0, var height: Int = 0)

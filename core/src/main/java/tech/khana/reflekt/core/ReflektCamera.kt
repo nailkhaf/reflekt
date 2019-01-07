@@ -13,7 +13,7 @@ class ReflektCameraImpl(
     private val settingsProvider: SettingsProvider = SettingsProviderImpl(userSettings),
     private val requestFactory: RequestFactory =
         RequestFactoryImpl(ctx.cameraManager, settingsProvider)
-    ) : ReflektCamera {
+) : ReflektCamera {
 
     private val cameraManager = ctx.cameraManager
 
@@ -81,6 +81,7 @@ class ReflektCameraImpl(
 
             val surfaces = asyncSurfaces.map { it.await() }
             device.startSession(surfaces)
+            settingsProvider.sessionActive(true)
         }
     }
 
@@ -90,6 +91,7 @@ class ReflektCameraImpl(
             val device = reflektDevice
             check(device != null) { "camera is not opened" }
             device.stopSession()
+            settingsProvider.sessionActive(false)
         }
     }
 
@@ -120,11 +122,13 @@ class ReflektCameraImpl(
             check(device != null) { "camera is not opened" }
             if (currentSettings.previewAspectRatio == aspectRatio) return@withContext
 
+            val shouldStartPreview = currentSettings.previewActive
+            stopPreview()
             stopSession()
             settingsProvider.previewAspectRation(aspectRatio)
             startSession()
-            if (currentSettings.previewActive) {
-                device.startPreview()
+            if (shouldStartPreview) {
+                startPreview()
             }
         }
     }
@@ -141,7 +145,16 @@ class ReflektCameraImpl(
     override suspend fun close() = coroutineScope {
         cameraLogger.debug { "#close" }
         withContext(cameraDispatcher) {
-            reflektDevice?.release()
+            reflektDevice?.let {
+
+                if (currentSettings.previewActive)
+                    stopPreview()
+
+                if (currentSettings.sessionActive)
+                    stopSession()
+
+                reflektDevice?.release()
+            }
             reflektDevice = null
         }
         Unit
