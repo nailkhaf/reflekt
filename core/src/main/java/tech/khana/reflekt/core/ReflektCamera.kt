@@ -8,9 +8,9 @@ import kotlinx.coroutines.android.asCoroutineDispatcher
 
 class ReflektCameraImpl(
     ctx: Context,
-    userSettings: UserSettings,
+    reflektSettings: ReflektSettings,
     private val handlerThread: HandlerThread = HandlerThread("").apply { start() },
-    private val settingsProvider: SettingsProvider = SettingsProviderImpl(userSettings),
+    private val settingsProvider: SettingsProvider = SettingsProviderImpl(reflektSettings),
     private val requestFactory: RequestFactory =
         RequestFactoryImpl(ctx.cameraManager, settingsProvider)
 ) : ReflektCamera {
@@ -21,10 +21,10 @@ class ReflektCameraImpl(
 
     private var reflektDevice: ReflektDevice? = null
 
-    private val currentSettings: UserSettings
+    private val currentSettings: ReflektSettings
         get() = settingsProvider.currentSettings
 
-    override suspend fun open() = coroutineScope {
+    override suspend fun open() {
         cameraLogger.debug { "#open" }
         withContext(cameraDispatcher) {
 
@@ -62,10 +62,13 @@ class ReflektCameraImpl(
                     )
                 }
 
+                val hardwareRotation = hardwareRotationOf(cameraManager.hardwareRotation(device.cameraId))
+
                 val surfaceConfig = SurfaceConfig(
                     outputResolutions,
-                    currentSettings.rotation,
-                    currentSettings.previewAspectRatio
+                    currentSettings.previewAspectRatio,
+                    currentSettings.displayRotation,
+                    hardwareRotation
                 )
 
                 async(Dispatchers.Default) {

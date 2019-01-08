@@ -8,14 +8,14 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
 internal class SettingsProviderImpl(
-    userSettings: UserSettings,
+    reflektSettings: ReflektSettings,
     private val dispatcher: CoroutineDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 ) : SettingsProvider {
 
-    override val currentSettings: UserSettings
+    override val currentSettings: ReflektSettings
         get() = _currentSettings.get()
 
-    private val _currentSettings = AtomicReference(userSettings)
+    private val _currentSettings = AtomicReference(reflektSettings)
 
     override suspend fun flash(flashMode: FlashMode) = coroutineScope {
         withContext(dispatcher) {

@@ -50,6 +50,12 @@ internal fun CameraManager.surfaceSupported(cameraId: String, surface: Surface):
     return map.isOutputSupportedFor(surface)
 }
 
+internal fun CameraManager.hardwareRotation(cameraId: String): Int {
+    val characteristics = getCameraCharacteristics(cameraId)
+    CameraCharacteristics.CONTROL_AE_STATE_LOCKED
+    return characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)!!
+}
+
 internal fun CameraManager.supportedLevel(cameraId: String): SupportLevel {
     val characteristics = getCameraCharacteristics(cameraId)
     val level = characteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)

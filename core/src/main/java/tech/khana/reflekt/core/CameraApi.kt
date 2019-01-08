@@ -50,7 +50,7 @@ interface ReflektSurface {
 
 interface SettingsProvider {
 
-    val currentSettings: UserSettings
+    val currentSettings: ReflektSettings
 
     suspend fun flash(flashMode: FlashMode)
 

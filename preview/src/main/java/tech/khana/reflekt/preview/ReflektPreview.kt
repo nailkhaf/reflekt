@@ -58,7 +58,7 @@ class ReflektPreview constructor(
             val previewResolution = config.resolutions
                 .chooseOptimalResolution(config.previewAspectRatio)
             this@ReflektPreview.previewAspectRatio = config.previewAspectRatio
-            previewRotation = config.rotation
+            previewRotation = config.displayRotation
 
             requestLayout()
             layoutMutex.twiceLock()
@@ -96,23 +96,23 @@ class ReflektPreview constructor(
             layoutParams.width == MATCH_PARENT && layoutParams.height == MATCH_PARENT -> {
                 val viewAspectRation = width.toFloat() / height.toFloat()
                 if (viewAspectRation <= previewAspectRatio) {
-                    onMeasureByMatchParent(width, height, previewAspectRatio, HEIGHT)
+                    onMeasureByMatchParent(width, height, previewAspectRatio, previewRotation, HEIGHT)
                 } else {
-                    onMeasureByMatchParent(width, height, previewAspectRatio, WIDTH)
+                    onMeasureByMatchParent(width, height, previewAspectRatio, previewRotation, WIDTH)
                 }
             }
             layoutParams.width == WRAP_CONTENT && layoutParams.height == WRAP_CONTENT -> {
                 val viewAspectRation = width.toFloat() / height.toFloat()
                 if (viewAspectRation >= previewAspectRatio) {
-                    onMeasureByMatchParent(width, height, previewAspectRatio, HEIGHT)
+                    onMeasureByMatchParent(width, height, previewAspectRatio, previewRotation, HEIGHT)
                 } else {
-                    onMeasureByMatchParent(width, height, previewAspectRatio, WIDTH)
+                    onMeasureByMatchParent(width, height, previewAspectRatio, previewRotation, WIDTH)
                 }
             }
             layoutParams.width == WRAP_CONTENT && layoutParams.height == MATCH_PARENT ->
-                onMeasureByMatchParent(width, height, previewAspectRatio, HEIGHT)
+                onMeasureByMatchParent(width, height, previewAspectRatio, previewRotation, HEIGHT)
             layoutParams.width == MATCH_PARENT && layoutParams.height == WRAP_CONTENT ->
-                onMeasureByMatchParent(width, height, previewAspectRatio, WIDTH)
+                onMeasureByMatchParent(width, height, previewAspectRatio, previewRotation, WIDTH)
             else -> throw IllegalStateException("unknown layout settings")
         }
 
@@ -123,18 +123,42 @@ class ReflektPreview constructor(
     }
 
     private fun onMeasureByMatchParent(
-        width: Int, height: Int, aspectRatio: Float, side: Side
+        width: Int, height: Int, aspectRatio: Float, rotation: Rotation, side: Side
     ): MutableSize = when (side) {
         HEIGHT -> {
             val newWidth = (height / aspectRatio).toInt()
             textureView.setTransform(textureMatrix.apply {
                 reset()
+
                 if (newWidth > width) {
-                    postTranslate(-(newWidth - width) / 2f, 0f)
-//                    postScale(0.5f, 0.5f, width / 2f, height / 2f)
+                    when (rotation) {
+                        Rotation._0 -> {
+                            postTranslate(-(newWidth - width) / 2f, 0f)
+                        }
+                        Rotation._90 -> { // FIXME check that image in center
+                            postTranslate(0f, -(newWidth - width) / 2f)
+                        }
+                        Rotation._270 -> { // FIXME check that image in center
+                            postTranslate(0f, (newWidth - width) / 2f)
+                        }
+                        else -> {
+                        }
+                    }
+                }
+
+                when (rotation) { // FIXME 270 -> 90, 90 -> 270 view is not recreated
+                    Rotation._90 -> {
+                        postRotate(270f, newWidth / 2f, height / 2f)
+                        postScale(1f / aspectRatio, aspectRatio, newWidth / 2f, height / 2f)
+                    }
+                    Rotation._270 -> {
+                        postRotate(90f, newWidth / 2f, height / 2f)
+                        postScale(1f / aspectRatio, aspectRatio, newWidth / 2f, height / 2f)
+                    }
+                    else -> {
+                    }
                 }
             })
-
             previewLogger.debug {
                 "#setMeasuredDimension(newWidth=$newWidth, height=$height)"
             }
@@ -148,8 +172,32 @@ class ReflektPreview constructor(
             textureView.setTransform(textureMatrix.apply {
                 reset()
                 if (newHeight > height) {
-                    postTranslate(0f, -(newHeight - height) / 2f)
-//                    postScale(0.5f, 0.5f, width / 2f, height / 2f)
+                    when (rotation) {
+                        Rotation._0 -> {
+                            postTranslate(0f, -(newHeight - height) / 2f)
+                        }
+                        Rotation._90 -> { // FIXME check that image in center
+                            postTranslate((newHeight - height) / 2f, 0f)
+                        }
+                        Rotation._270 -> { // FIXME check that image in center
+                            postTranslate(-(newHeight - height) / 2f, 0f)
+                        }
+                        else -> {
+                        }
+                    }
+                }
+
+                when (rotation) { // FIXME 270 -> 90, 90 -> 270 view is not recreated
+                    Rotation._90 -> {
+                        postRotate(270f, width / 2f, newHeight / 2f)
+                        postScale(1f / aspectRatio, aspectRatio, width / 2f, newHeight / 2f)
+                    }
+                    Rotation._270 -> {
+                        postRotate(90f, width / 2f, newHeight / 2f)
+                        postScale(1f / aspectRatio, aspectRatio, width / 2f, newHeight / 2f)
+                    }
+                    else -> {
+                    }
                 }
             })
 

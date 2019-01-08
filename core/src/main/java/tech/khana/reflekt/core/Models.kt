@@ -9,9 +9,10 @@ import android.hardware.camera2.CaptureRequest
 import android.view.Surface
 import tech.khana.reflekt.core.AspectRatio.AR_4X3
 
-data class UserSettings(
+data class ReflektSettings(
     val surfaces: List<ReflektSurface>,
-    val rotation: Rotation,
+    val displayRotation: Rotation,
+    val hardwareRotation: Rotation = Rotation._90,
     val previewAspectRatio: AspectRatio = AR_4X3,
     val direct: Lens = Lens.FRONT,
     val flashMode: FlashMode = FlashMode.OFF,
@@ -37,26 +38,38 @@ enum class SurfaceType(val value: Int) {
     CAPTURE(CameraDevice.TEMPLATE_STILL_CAPTURE)
 }
 
+/**
+ * clockwise rotation, start from 180
+ */
 @Suppress("EnumEntryName")
-enum class Rotation {
-    _0,
-    _90,
-    _180,
-    _270
+enum class Rotation(val value: Int) {
+    _0(0),
+    _90(90),
+    _180(180),
+    _270(270)
 }
 
-fun rotationOf(value: Int) = when (value) {
+fun displayRotationOf(value: Int) = when (value) {
     Surface.ROTATION_0 -> Rotation._0
     Surface.ROTATION_90 -> Rotation._90
     Surface.ROTATION_180 -> Rotation._180
     Surface.ROTATION_270 -> Rotation._270
-    else -> throw IllegalArgumentException("unknown rotation")
+    else -> throw IllegalArgumentException("unknown display rotation")
+}
+
+fun hardwareRotationOf(value: Int) = when (value) {
+    0 -> Rotation._180
+    90 -> Rotation._270
+    180 -> Rotation._0
+    270 -> Rotation._90
+    else -> throw IllegalArgumentException("unknown hardware rotation")
 }
 
 data class SurfaceConfig(
     val resolutions: List<Resolution>,
-    val rotation: Rotation,
-    val previewAspectRatio: AspectRatio
+    val previewAspectRatio: AspectRatio,
+    val displayRotation: Rotation,
+    val hardwareRotation: Rotation = Rotation._0
 )
 
 data class TypedSurface(val type: SurfaceType, val surface: Surface)
