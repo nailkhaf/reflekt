@@ -9,7 +9,7 @@ internal class RequestFactoryImpl(
     private val settingsProvider: SettingsProvider
 ) : RequestFactory {
 
-    private val reflektSettings: ReflektSettings
+    private val settings: ReflektSettings
         get() = settingsProvider.currentSettings
 
     override fun CameraDevice.createPreviewRequest(
@@ -18,7 +18,7 @@ internal class RequestFactoryImpl(
         .apply { block() }
         .apply {
             // val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraDevice.id)
-            val settings = reflektSettings
+            val settings = settings
             set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
 //            set(CaptureRequest.FLASH_MODE, settings.flashMode.value)
         }
@@ -30,7 +30,7 @@ internal class RequestFactoryImpl(
         .apply { block() }
         .apply {
             // val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraDevice.id)
-            val settings = reflektSettings
+            val settings = settings
             set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
 //            set(CaptureRequest.FLASH_MODE, settings.flashMode.value)
         }

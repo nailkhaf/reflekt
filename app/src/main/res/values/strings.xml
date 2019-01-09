@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Reflekt</string>
     <string name="pick_aspect_ratio">Pick aspect ratio</string>
+    <string name="pick_lens_direct">Pick lens direct</string>
 </resources>

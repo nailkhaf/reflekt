@@ -10,7 +10,7 @@ import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.*
 import tech.khana.reflekt.core.ReflektCamera
 import tech.khana.reflekt.core.ReflektCameraImpl
-import tech.khana.reflekt.core.ReflektSettings
+import tech.khana.reflekt.core.Settings
 import tech.khana.reflekt.core.displayRotationOf
 import tech.khana.reflekt.preview.ReflektPreview
 import kotlin.coroutines.CoroutineContext
@@ -44,10 +44,16 @@ class CameraFragment : Fragment(), CoroutineScope {
                 toggle = toggle.not()
                 when (toggle) {
                     true -> {
-                        cameraControls.visibility = View.VISIBLE
+                        cameraControls.animate()
+                            .alpha(1f)
+                            .setDuration(300)
+                            .withStartAction { cameraControls.visibility = View.VISIBLE }
                     }
                     false -> {
-                        cameraControls.visibility = View.INVISIBLE
+                        cameraControls.animate()
+                            .alpha(0f)
+                            .setDuration(300)
+                            .withEndAction { cameraControls.visibility = View.INVISIBLE }
                     }
                 }
             }
@@ -55,25 +61,40 @@ class CameraFragment : Fragment(), CoroutineScope {
 
         val rotation = displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
         camera = ReflektCameraImpl(
-            requireActivity(), ReflektSettings(
+            requireActivity(), Settings(
                 surfaces = listOf(preview),
                 displayRotation = rotation
             )
         )
 
 
-        val builder = AlertDialog.Builder(requireActivity()).apply {
-            setTitle(R.string.pick_aspect_ratio)
-        }
         aspectRatioButton.setOnClickListener {
             launch {
                 val aspectRatios = camera.availablePreviewAspectRatios()
-                builder.setItems(aspectRatios.map { it.name }.toTypedArray()) { _, id ->
-                    this@CameraFragment.launch {
-                        camera.previewAspectRatio(aspectRatios[id])
+                AlertDialog.Builder(requireActivity()).apply {
+                    setTitle(R.string.pick_aspect_ratio)
+                    setItems(aspectRatios.map { it.name }.toTypedArray()) { _, id ->
+                        this@CameraFragment.launch {
+                            camera.previewAspectRatio(aspectRatios[id])
+                        }
                     }
+                    show()
                 }
-                builder.show()
+            }
+        }
+
+        switchLensButton.setOnClickListener {
+            launch {
+                val lenses = camera.availableLenses()
+                AlertDialog.Builder(requireActivity()).apply {
+                    setTitle(R.string.pick_lens_direct)
+                    setItems(lenses.map { it.name }.toTypedArray()) { _, id ->
+                        this@CameraFragment.launch {
+                            camera.lens(lenses[id])
+                        }
+                    }
+                    show()
+                }
             }
         }
     }

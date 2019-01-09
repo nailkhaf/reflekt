@@ -38,7 +38,9 @@ interface ReflektCamera {
 
     suspend fun availablePreviewAspectRatios(): List<AspectRatio>
 
-    suspend fun getAvailableLenses(): List<Lens>
+    suspend fun lens(lens: Lens)
+
+    suspend fun availableLenses(): List<Lens>
 }
 
 interface ReflektSurface {
@@ -52,15 +54,17 @@ interface SettingsProvider {
 
     val currentSettings: ReflektSettings
 
-    suspend fun flash(flashMode: FlashMode)
+    suspend fun lens(lens: Lens)
 
-    suspend fun supportLevel(supportLevel: SupportLevel)
+    suspend fun flash(flashMode: FlashMode)
 
     suspend fun sessionActive(active: Boolean)
 
     suspend fun previewActive(active: Boolean)
 
     suspend fun previewAspectRation(aspectRatio: AspectRatio)
+
+    suspend fun supportLevel(supportLevel: SupportLevel)
 }
 
 interface RequestFactory {

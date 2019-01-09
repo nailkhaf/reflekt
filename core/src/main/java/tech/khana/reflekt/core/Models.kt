@@ -9,16 +9,32 @@ import android.hardware.camera2.CaptureRequest
 import android.view.Surface
 import tech.khana.reflekt.core.AspectRatio.AR_4X3
 
+data class Settings(
+    val surfaces: List<ReflektSurface>,
+    val displayRotation: Rotation,
+    val previewAspectRatio: AspectRatio = AR_4X3,
+    val lens: Lens = Lens.FRONT,
+    val flashMode: FlashMode = FlashMode.OFF
+)
+
 data class ReflektSettings(
     val surfaces: List<ReflektSurface>,
     val displayRotation: Rotation,
+    val previewAspectRatio: AspectRatio,
+    val lens: Lens,
+    val flashMode: FlashMode,
     val hardwareRotation: Rotation = Rotation._90,
-    val previewAspectRatio: AspectRatio = AR_4X3,
-    val direct: Lens = Lens.FRONT,
-    val flashMode: FlashMode = FlashMode.OFF,
     val supportLevel: SupportLevel = SupportLevel.LEGACY,
     val previewActive: Boolean = false,
     val sessionActive: Boolean = false
+)
+
+fun Settings.toReflektSettings() = ReflektSettings(
+    surfaces = surfaces,
+    displayRotation = displayRotation,
+    previewAspectRatio = previewAspectRatio,
+    lens = lens,
+    flashMode = flashMode
 )
 
 enum class AspectRatio(val value: Float) {
@@ -116,5 +132,5 @@ enum class FlashMode(val value: Int) {
     OFF(CaptureRequest.FLASH_MODE_OFF),
     PHOTO(CaptureRequest.FLASH_MODE_SINGLE),
     TORCH(CaptureRequest.FLASH_MODE_TORCH),
-    SCREEN(777),
+    SCREEN(4),
 }

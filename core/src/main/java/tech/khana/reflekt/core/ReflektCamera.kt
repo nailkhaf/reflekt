@@ -8,9 +8,9 @@ import kotlinx.coroutines.android.asCoroutineDispatcher
 
 class ReflektCameraImpl(
     ctx: Context,
-    reflektSettings: ReflektSettings,
+    settings: Settings,
     private val handlerThread: HandlerThread = HandlerThread("").apply { start() },
-    private val settingsProvider: SettingsProvider = SettingsProviderImpl(reflektSettings),
+    private val settingsProvider: SettingsProvider = SettingsProviderImpl(settings.toReflektSettings()),
     private val requestFactory: RequestFactory =
         RequestFactoryImpl(ctx.cameraManager, settingsProvider)
 ) : ReflektCamera {
@@ -21,16 +21,15 @@ class ReflektCameraImpl(
 
     private var reflektDevice: ReflektDevice? = null
 
-    private val currentSettings: ReflektSettings
-        get() = settingsProvider.currentSettings
-
     override suspend fun open() {
         cameraLogger.debug { "#open" }
         withContext(cameraDispatcher) {
 
             check(reflektDevice == null) { "camera already is opened" }
 
-            val cameraId = cameraManager.findCameraByDirect(currentSettings.direct)
+            val currentSettings = settingsProvider.currentSettings
+
+            val cameraId = cameraManager.findCameraByDirect(currentSettings.lens)
 
             settingsProvider.supportLevel(cameraManager.supportedLevel(cameraId))
             cameraLogger.debug { "supported level=${currentSettings.supportLevel.description}" }
@@ -47,7 +46,10 @@ class ReflektCameraImpl(
         cameraLogger.debug { "#startSession" }
         withContext(cameraDispatcher) {
             val device = reflektDevice
+            val currentSettings = settingsProvider.currentSettings
             check(device != null) { "camera is not opened" }
+            check(currentSettings.sessionActive.not()) { "session is active" }
+            check(currentSettings.previewActive.not()) { "preview is active" }
 
             val asyncSurfaces = currentSettings.surfaces.map { cameraSurface ->
                 yield()
@@ -81,7 +83,6 @@ class ReflektCameraImpl(
                 }
             }
 
-
             val surfaces = asyncSurfaces.map { it.await() }
             device.startSession(surfaces)
             settingsProvider.sessionActive(true)
@@ -92,7 +93,11 @@ class ReflektCameraImpl(
         cameraLogger.debug { "#stopSession" }
         withContext(cameraDispatcher) {
             val device = reflektDevice
+            val currentSettings = settingsProvider.currentSettings
             check(device != null) { "camera is not opened" }
+            check(currentSettings.previewActive.not()) { "preview is active" }
+            check(currentSettings.sessionActive) { "preview is active" }
+
             device.stopSession()
             settingsProvider.sessionActive(false)
         }
@@ -102,7 +107,10 @@ class ReflektCameraImpl(
         cameraLogger.debug { "#startPreview" }
         withContext(cameraDispatcher) {
             val device = reflektDevice
+            val currentSettings = settingsProvider.currentSettings
             check(device != null) { "camera is not opened" }
+            check(currentSettings.sessionActive) { "session is not started" }
+
             device.startPreview()
             settingsProvider.previewActive(true)
         }
@@ -118,37 +126,12 @@ class ReflektCameraImpl(
         }
     }
 
-    override suspend fun previewAspectRatio(aspectRatio: AspectRatio) = coroutineScope {
-        cameraLogger.debug { "#previewAspectRatio" }
-        withContext(cameraDispatcher) {
-            val device = reflektDevice
-            check(device != null) { "camera is not opened" }
-            if (currentSettings.previewAspectRatio == aspectRatio) return@withContext
-
-            val shouldStartPreview = currentSettings.previewActive
-            stopPreview()
-            stopSession()
-            settingsProvider.previewAspectRation(aspectRatio)
-            startSession()
-            if (shouldStartPreview) {
-                startPreview()
-            }
-        }
-    }
-
-    override suspend fun availablePreviewAspectRatios(): List<AspectRatio> = coroutineScope {
-        cameraLogger.debug { "#availablePreviewAspectRatios" }
-        withContext(cameraDispatcher) {
-            val device = reflektDevice
-            check(device != null) { "camera is not opened" }
-            AspectRatio.values().toList()
-        }
-    }
-
     override suspend fun close() = coroutineScope {
         cameraLogger.debug { "#close" }
         withContext(cameraDispatcher) {
             reflektDevice?.let {
+
+                val currentSettings = settingsProvider.currentSettings
 
                 if (currentSettings.previewActive)
                     stopPreview()
@@ -163,7 +146,65 @@ class ReflektCameraImpl(
         Unit
     }
 
-    override suspend fun getAvailableLenses(): List<Lens> = coroutineScope {
+    override suspend fun previewAspectRatio(aspectRatio: AspectRatio) = coroutineScope {
+        cameraLogger.debug { "#previewAspectRatio" }
+        withContext(cameraDispatcher) {
+            val device = reflektDevice
+            check(device != null) { "camera is not opened" }
+            val currentSettings = settingsProvider.currentSettings
+
+            if (currentSettings.previewAspectRatio == aspectRatio) return@withContext
+
+            val shouldStartSession = currentSettings.sessionActive
+            val shouldStartPreview = currentSettings.previewActive
+            stopPreview()
+            stopSession()
+            settingsProvider.previewAspectRation(aspectRatio)
+            if (shouldStartSession) {
+                startSession()
+                if (shouldStartPreview) {
+                    startPreview()
+                }
+            }
+        }
+    }
+
+    override suspend fun availablePreviewAspectRatios(): List<AspectRatio> = coroutineScope {
+        cameraLogger.debug { "#availablePreviewAspectRatios" }
+        withContext(cameraDispatcher) {
+            val device = reflektDevice
+            check(device != null) { "camera is not opened" }
+            AspectRatio.values().toList() // FIXME
+        }
+    }
+
+    override suspend fun lens(lens: Lens) {
+        cameraLogger.debug { "#lens" }
+        withContext(cameraDispatcher) {
+            val device = reflektDevice
+            check(device != null) { "camera is not opened" }
+            val currentSettings = settingsProvider.currentSettings
+
+            if (currentSettings.lens == lens) return@withContext
+
+            val shouldStartSession = currentSettings.sessionActive
+            val shouldStartPreview = currentSettings.previewActive
+            stopPreview()
+            stopSession()
+            close()
+            settingsProvider.lens(lens)
+            open()
+            if (shouldStartSession) {
+                startSession()
+                if (shouldStartPreview) {
+                    startPreview()
+                }
+            }
+        }
+    }
+
+    override suspend fun availableLenses(): List<Lens> = coroutineScope {
+        cameraLogger.debug { "#availablePreviewAspectRatios" }
         cameraManager.cameraIdList.map { cameraManager.directCamera(it) }
     }
 }

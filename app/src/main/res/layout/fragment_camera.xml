@@ -24,8 +24,20 @@
             android:background="@android:color/transparent"
             android:padding="8dp"
             android:src="@drawable/ic_aspect_ratio_24dp"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="ContentDescription" />
+
+        <ImageButton
+            android:id="@+id/switchLensButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:background="@android:color/transparent"
+            android:padding="8dp"
+            android:src="@drawable/ic_switch_camera_24dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintRight_toLeftOf="@id/aspectRatioButton"
             tools:ignore="ContentDescription" />
 
     </android.support.constraint.ConstraintLayout>

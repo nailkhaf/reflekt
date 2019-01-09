@@ -8,42 +8,52 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
 internal class SettingsProviderImpl(
-    reflektSettings: ReflektSettings,
+    settings: ReflektSettings,
     private val dispatcher: CoroutineDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 ) : SettingsProvider {
 
     override val currentSettings: ReflektSettings
-        get() = _currentSettings.get()
+        get() = settings.get()
 
-    private val _currentSettings = AtomicReference(reflektSettings)
+    private val settings = AtomicReference(settings)
 
     override suspend fun flash(flashMode: FlashMode) = coroutineScope {
         withContext(dispatcher) {
-            _currentSettings.set(currentSettings.copy(flashMode = flashMode))
+            settings.ref = settings.ref.copy(flashMode = flashMode)
+        }
+    }
+
+    override suspend fun lens(lens: Lens) = coroutineScope {
+        withContext(dispatcher) {
+            settings.ref = settings.ref.copy(lens = lens)
         }
     }
 
     override suspend fun supportLevel(supportLevel: SupportLevel) = coroutineScope {
         withContext(dispatcher) {
-            _currentSettings.set(currentSettings.copy(supportLevel = supportLevel))
+            settings.ref = settings.ref.copy(supportLevel = supportLevel)
         }
     }
 
     override suspend fun previewActive(active: Boolean) = coroutineScope {
         withContext(dispatcher) {
-            _currentSettings.set(currentSettings.copy(previewActive = active))
+            settings.ref = settings.ref.copy(previewActive = active)
         }
     }
 
     override suspend fun previewAspectRation(aspectRatio: AspectRatio) = coroutineScope {
         withContext(dispatcher) {
-            _currentSettings.set(currentSettings.copy(previewAspectRatio = aspectRatio))
+            settings.ref = settings.ref.copy(previewAspectRatio = aspectRatio)
         }
     }
 
     override suspend fun sessionActive(active: Boolean) = coroutineScope {
         withContext(dispatcher) {
-            _currentSettings.set(currentSettings.copy(sessionActive = active))
+            settings.ref = settings.ref.copy(sessionActive = active)
         }
     }
 }
+
+private var <V> AtomicReference<V>.ref: V
+    get() = get()
+    set(value) = set(value)
