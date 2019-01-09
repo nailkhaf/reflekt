@@ -41,6 +41,10 @@ interface ReflektCamera {
     suspend fun lens(lens: Lens)
 
     suspend fun availableLenses(): List<Lens>
+
+    suspend fun flash(flashMode: FlashMode)
+
+    suspend fun availableFlashModes(): List<FlashMode>
 }
 
 interface ReflektSurface {

@@ -40,6 +40,18 @@
             app:layout_constraintRight_toLeftOf="@id/aspectRatioButton"
             tools:ignore="ContentDescription" />
 
+        <ImageButton
+            android:id="@+id/flashButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:background="@android:color/transparent"
+            android:padding="8dp"
+            android:src="@drawable/ic_flash_on_24dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintRight_toLeftOf="@id/switchLensButton"
+            tools:ignore="ContentDescription" />
+
     </android.support.constraint.ConstraintLayout>
 
 </FrameLayout>

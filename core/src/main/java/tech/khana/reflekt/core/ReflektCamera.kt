@@ -29,7 +29,7 @@ class ReflektCameraImpl(
 
             val currentSettings = settingsProvider.currentSettings
 
-            val cameraId = cameraManager.findCameraByDirect(currentSettings.lens)
+            val cameraId = cameraManager.findCameraByLens(currentSettings.lens)
 
             settingsProvider.supportLevel(cameraManager.supportedLevel(cameraId))
             cameraLogger.debug { "supported level=${currentSettings.supportLevel.description}" }
@@ -171,11 +171,7 @@ class ReflektCameraImpl(
 
     override suspend fun availablePreviewAspectRatios(): List<AspectRatio> = coroutineScope {
         cameraLogger.debug { "#availablePreviewAspectRatios" }
-        withContext(cameraDispatcher) {
-            val device = reflektDevice
-            check(device != null) { "camera is not opened" }
-            AspectRatio.values().toList() // FIXME
-        }
+        AspectRatio.values().toList() // FIXME
     }
 
     override suspend fun lens(lens: Lens) {
@@ -206,5 +202,33 @@ class ReflektCameraImpl(
     override suspend fun availableLenses(): List<Lens> = coroutineScope {
         cameraLogger.debug { "#availablePreviewAspectRatios" }
         cameraManager.cameraIdList.map { cameraManager.directCamera(it) }
+    }
+
+    override suspend fun flash(flashMode: FlashMode) {
+        cameraLogger.debug { "#flash" }
+        withContext(cameraDispatcher) {
+            val device = reflektDevice
+            check(device != null) { "camera is not opened" }
+            val currentSettings = settingsProvider.currentSettings
+
+            if (currentSettings.flashMode == flashMode) return@withContext
+
+            val shouldStartPreview = currentSettings.previewActive
+            stopPreview()
+            settingsProvider.flash(flashMode)
+            if (shouldStartPreview) {
+                startPreview()
+            }
+        }
+    }
+
+    override suspend fun availableFlashModes(): List<FlashMode> = coroutineScope {
+        cameraLogger.debug { "#availableFlashModes" }
+        val lens = settingsProvider.currentSettings.lens
+        val availableFlash = cameraManager.availableFlash(cameraManager.findCameraByLens(lens))
+        when {
+            availableFlash && lens == Lens.BACK -> FlashMode.values().toList()
+            else -> listOf(FlashMode.OFF)
+        }
     }
 }

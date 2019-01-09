@@ -97,6 +97,21 @@ class CameraFragment : Fragment(), CoroutineScope {
                 }
             }
         }
+
+        flashButton.setOnClickListener {
+            launch {
+                val flashModes = camera.availableFlashModes()
+                AlertDialog.Builder(requireActivity()).apply {
+                    setTitle(R.string.pick_lens_direct)
+                    setItems(flashModes.map { it.name }.toTypedArray()) { _, id ->
+                        this@CameraFragment.launch {
+                            camera.flash(flashModes[id])
+                        }
+                    }
+                    show()
+                }
+            }
+        }
     }
 
     override fun onResume() {

@@ -5,7 +5,6 @@ import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraMetadata
-import android.hardware.camera2.CaptureRequest
 import android.view.Surface
 import tech.khana.reflekt.core.AspectRatio.AR_4X3
 
@@ -128,9 +127,9 @@ enum class SupportLevel(val value: Int, val description: String) {
     )
 }
 
-enum class FlashMode(val value: Int) {
-    OFF(CaptureRequest.FLASH_MODE_OFF),
-    PHOTO(CaptureRequest.FLASH_MODE_SINGLE),
-    TORCH(CaptureRequest.FLASH_MODE_TORCH),
-    SCREEN(4),
+enum class FlashMode {
+    AUTO,
+    ON,
+    OFF,
+    TORCH
 }

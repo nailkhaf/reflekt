@@ -19,8 +19,20 @@ internal class RequestFactoryImpl(
         .apply {
             // val cameraCharacteristics = cameraManager.getCameraCharacteristics(cameraDevice.id)
             val settings = settings
+            when (settings.flashMode) {
+                FlashMode.TORCH -> {
+                    set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH)
+                }
+                else -> {
+                    set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
+                }
+            }
+
+            set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.FLASH_MODE_TORCH)
+            set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+            set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO)
             set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
-//            set(CaptureRequest.FLASH_MODE, settings.flashMode.value)
+            set(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE, CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_AUTO)
         }
         .build()
 

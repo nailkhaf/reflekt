@@ -12,7 +12,7 @@ import android.view.Surface
 internal val Context.cameraManager
     get() = getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
-internal fun CameraManager.findCameraByDirect(direct: Lens): String =
+internal fun CameraManager.findCameraByLens(direct: Lens): String =
     cameraIdList.first { directCamera(it) == direct }
 
 internal fun CameraManager.directCamera(cameraId: String): Lens {
@@ -63,6 +63,13 @@ internal fun CameraManager.supportedLevel(cameraId: String): SupportLevel {
         it.value == level
     }
 }
+
+internal fun CameraManager.availableFlash(cameraId: String): Boolean {
+    val characteristics = getCameraCharacteristics(cameraId)
+    return characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)
+        ?: throw IllegalStateException()
+}
+
 
 internal fun Size.toResolution() = Resolution(width, height)
 
