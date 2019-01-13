@@ -1,5 +1,6 @@
 package tech.khana.reflekt.core
 
+import android.graphics.Rect
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CaptureRequest
 
@@ -45,6 +46,10 @@ interface ReflektCamera {
     suspend fun flash(flashMode: FlashMode)
 
     suspend fun availableFlashModes(): List<FlashMode>
+
+    suspend fun maxZoom(): Float
+
+    suspend fun zoom(zoom: Float)
 }
 
 interface ReflektSurface {
@@ -69,6 +74,10 @@ interface SettingsProvider {
     suspend fun previewAspectRation(aspectRatio: AspectRatio)
 
     suspend fun supportLevel(supportLevel: SupportLevel)
+
+    suspend fun zoom(zoom: Float)
+
+    suspend fun sensorRect(sensorRect: Rect)
 }
 
 interface RequestFactory {

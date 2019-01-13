@@ -6,6 +6,7 @@ import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.SeekBar
 import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.*
 import tech.khana.reflekt.core.ReflektCamera
@@ -112,6 +113,17 @@ class CameraFragment : Fragment(), CoroutineScope {
                 }
             }
         }
+
+        runBlocking {
+            val maxZoom = camera.maxZoom()
+            zoomSeekBar.onProgressChanged {
+                if (it % 5 == 0) {
+                    this@CameraFragment.launch {
+                        camera.zoom(maxZoom * it / zoomSeekBar.max)
+                    }
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -141,4 +153,18 @@ class CameraFragment : Fragment(), CoroutineScope {
 
         fun newInstance() = CameraFragment()
     }
+}
+
+private fun SeekBar.onProgressChanged(f: (progress: Int) -> Unit) {
+    setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+        override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+            f(progress)
+        }
+
+        override fun onStartTrackingTouch(seekBar: SeekBar?) {
+        }
+
+        override fun onStopTrackingTouch(seekBar: SeekBar?) {
+        }
+    })
 }

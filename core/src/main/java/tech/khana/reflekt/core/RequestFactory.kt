@@ -1,5 +1,6 @@
 package tech.khana.reflekt.core
 
+import android.graphics.Rect
 import android.hardware.camera2.*
 import android.os.Build
 import android.support.annotation.RequiresApi
@@ -28,7 +29,21 @@ internal class RequestFactoryImpl(
                 }
             }
 
-            set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.FLASH_MODE_TORCH)
+            when (settings.zoom) {
+                1f -> {
+                }
+                else -> {
+                    val activeArraySize = settings.sensorRect
+                    val width = Math.floor(activeArraySize.width().toDouble() / settings.zoom).toInt()
+                    val left = (activeArraySize.width() - width) / 2
+                    val height = Math.floor(activeArraySize.height().toDouble() / settings.zoom).toInt()
+                    val top = (activeArraySize.height() - height) / 2
+                    val croppedRect = Rect(left, top, left + width, top + height)
+                    set(CaptureRequest.SCALER_CROP_REGION, croppedRect)
+                }
+            }
+
+            set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO)
             set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
             set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO)
             set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)

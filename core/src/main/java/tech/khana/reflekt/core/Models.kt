@@ -2,6 +2,7 @@ package tech.khana.reflekt.core
 
 import android.annotation.SuppressLint
 import android.graphics.ImageFormat
+import android.graphics.Rect
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraMetadata
@@ -25,7 +26,9 @@ data class ReflektSettings(
     val hardwareRotation: Rotation = Rotation._90,
     val supportLevel: SupportLevel = SupportLevel.LEGACY,
     val previewActive: Boolean = false,
-    val sessionActive: Boolean = false
+    val sessionActive: Boolean = false,
+    val zoom: Float = 1f,
+    val sensorRect: Rect = Rect()
 )
 
 fun Settings.toReflektSettings() = ReflektSettings(
@@ -132,4 +135,9 @@ enum class FlashMode {
     ON,
     OFF,
     TORCH
+}
+
+enum class ZoomMode {
+    ON,
+    OFF
 }

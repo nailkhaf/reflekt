@@ -39,6 +39,8 @@ class ReflektCameraImpl(
             reflektDevice = ReflektDeviceImpl(
                 cameraDevice, requestFactory, cameraId, handlerThread
             )
+
+            settingsProvider.sensorRect(cameraManager.sensorRect(cameraId))
         }
     }
 
@@ -229,6 +231,30 @@ class ReflektCameraImpl(
         when {
             availableFlash && lens == Lens.BACK -> FlashMode.values().toList()
             else -> listOf(FlashMode.OFF)
+        }
+    }
+
+    override suspend fun maxZoom(): Float {
+        cameraLogger.debug { "#maxZoom" }
+        val lens = settingsProvider.currentSettings.lens
+        return cameraManager.availableMaxZoom(cameraManager.findCameraByLens(lens))
+    }
+
+    override suspend fun zoom(zoom: Float) {
+        cameraLogger.debug { "#zoom" }
+        withContext(cameraDispatcher) {
+            val device = reflektDevice
+            check(device != null) { "camera is not opened" }
+            val currentSettings = settingsProvider.currentSettings
+
+            val maxZoom = cameraManager.availableMaxZoom(cameraManager.findCameraByLens(currentSettings.lens))
+            require(zoom <= maxZoom) { "zoom more max zoom" }
+
+            val shouldStartPreview = currentSettings.previewActive
+            settingsProvider.zoom(zoom)
+            if (shouldStartPreview) {
+                startPreview()
+            }
         }
     }
 }

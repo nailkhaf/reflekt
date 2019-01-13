@@ -1,5 +1,6 @@
 package tech.khana.reflekt.core
 
+import android.graphics.Rect
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.coroutineScope
@@ -17,39 +18,41 @@ internal class SettingsProviderImpl(
 
     private val settings = AtomicReference(settings)
 
-    override suspend fun flash(flashMode: FlashMode) = coroutineScope {
-        withContext(dispatcher) {
-            settings.ref = settings.ref.copy(flashMode = flashMode)
-        }
+    override suspend fun flash(flashMode: FlashMode) = changeState {
+        it.copy(flashMode = flashMode)
     }
 
-    override suspend fun lens(lens: Lens) = coroutineScope {
-        withContext(dispatcher) {
-            settings.ref = settings.ref.copy(lens = lens)
-        }
+    override suspend fun lens(lens: Lens) = changeState {
+        it.copy(lens = lens)
     }
 
-    override suspend fun supportLevel(supportLevel: SupportLevel) = coroutineScope {
-        withContext(dispatcher) {
-            settings.ref = settings.ref.copy(supportLevel = supportLevel)
-        }
+    override suspend fun supportLevel(supportLevel: SupportLevel) = changeState {
+        it.copy(supportLevel = supportLevel)
     }
 
-    override suspend fun previewActive(active: Boolean) = coroutineScope {
-        withContext(dispatcher) {
-            settings.ref = settings.ref.copy(previewActive = active)
-        }
+    override suspend fun previewActive(active: Boolean) = changeState {
+        it.copy(previewActive = active)
     }
 
-    override suspend fun previewAspectRation(aspectRatio: AspectRatio) = coroutineScope {
-        withContext(dispatcher) {
-            settings.ref = settings.ref.copy(previewAspectRatio = aspectRatio)
-        }
+    override suspend fun previewAspectRation(aspectRatio: AspectRatio) = changeState {
+        it.copy(previewAspectRatio = aspectRatio)
     }
 
-    override suspend fun sessionActive(active: Boolean) = coroutineScope {
+    override suspend fun sessionActive(active: Boolean) = changeState {
+        it.copy(sessionActive = active)
+    }
+
+    override suspend fun zoom(zoom: Float) = changeState {
+        it.copy(zoom = zoom)
+    }
+
+    override suspend fun sensorRect(sensorRect: Rect) = changeState {
+        it.copy(sensorRect = sensorRect)
+    }
+
+    private suspend inline fun changeState(crossinline block: (ReflektSettings) -> ReflektSettings) = coroutineScope {
         withContext(dispatcher) {
-            settings.ref = settings.ref.copy(sessionActive = active)
+            settings.ref = block(settings.ref)
         }
     }
 }

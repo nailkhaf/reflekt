@@ -1,6 +1,7 @@
 package tech.khana.reflekt.core
 
 import android.content.Context
+import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata
@@ -70,6 +71,17 @@ internal fun CameraManager.availableFlash(cameraId: String): Boolean {
         ?: throw IllegalStateException()
 }
 
+internal fun CameraManager.availableMaxZoom(cameraId: String): Float {
+    val characteristics = getCameraCharacteristics(cameraId)
+    return characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM)
+        ?: throw IllegalStateException()
+}
+
+internal fun CameraManager.sensorRect(cameraId: String): Rect {
+    val characteristics = getCameraCharacteristics(cameraId)
+    return characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
+        ?: throw IllegalStateException()
+}
 
 internal fun Size.toResolution() = Resolution(width, height)
 
