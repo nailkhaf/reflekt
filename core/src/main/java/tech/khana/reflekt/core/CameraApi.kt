@@ -3,23 +3,7 @@ package tech.khana.reflekt.core
 import android.graphics.Rect
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CaptureRequest
-
-internal interface ReflektDevice {
-
-    val cameraId: String
-
-    suspend fun startSession(surfaces: List<TypedSurface>)
-
-    suspend fun startPreview()
-
-    suspend fun stopPreview()
-
-    suspend fun capture()
-
-    suspend fun stopSession()
-
-    suspend fun release()
-}
+import tech.khana.reflekt.models.*
 
 interface ReflektCamera {
 
@@ -33,15 +17,21 @@ interface ReflektCamera {
 
     suspend fun stopPreview()
 
+    suspend fun capture()
+
+    suspend fun startRecord()
+
+    suspend fun stopRecord()
+
     suspend fun close()
 
     suspend fun previewAspectRatio(aspectRatio: AspectRatio)
 
     suspend fun availablePreviewAspectRatios(): List<AspectRatio>
 
-    suspend fun lens(lens: Lens)
+    suspend fun lens(lensDirect: LensDirect)
 
-    suspend fun availableLenses(): List<Lens>
+    suspend fun availableLenses(): List<LensDirect>
 
     suspend fun flash(flashMode: FlashMode)
 
@@ -56,14 +46,14 @@ interface ReflektSurface {
 
     val format: ReflektFormat
 
-    suspend fun acquireSurface(config: SurfaceConfig): TypedSurface
+    suspend fun acquireSurface(config: SurfaceConfig): CameraSurface
 }
 
 interface SettingsProvider {
 
     val currentSettings: ReflektSettings
 
-    suspend fun lens(lens: Lens)
+    suspend fun lens(lensDirect: LensDirect)
 
     suspend fun flash(flashMode: FlashMode)
 

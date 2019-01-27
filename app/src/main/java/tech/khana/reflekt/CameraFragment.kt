@@ -11,8 +11,8 @@ import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.*
 import tech.khana.reflekt.core.ReflektCamera
 import tech.khana.reflekt.core.ReflektCameraImpl
-import tech.khana.reflekt.core.Settings
-import tech.khana.reflekt.core.displayRotationOf
+import tech.khana.reflekt.models.Settings
+import tech.khana.reflekt.models.displayRotationOf
 import tech.khana.reflekt.preview.ReflektPreview
 import kotlin.coroutines.CoroutineContext
 
@@ -60,7 +60,8 @@ class CameraFragment : Fragment(), CoroutineScope {
             }
         }
 
-        val rotation = displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
+        val rotation =
+            displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
         camera = ReflektCameraImpl(
             requireActivity(), Settings(
                 surfaces = listOf(preview),

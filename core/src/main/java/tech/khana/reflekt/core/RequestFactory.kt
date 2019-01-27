@@ -4,6 +4,8 @@ import android.graphics.Rect
 import android.hardware.camera2.*
 import android.os.Build
 import android.support.annotation.RequiresApi
+import tech.khana.reflekt.models.FlashMode
+import tech.khana.reflekt.models.ReflektSettings
 
 internal class RequestFactoryImpl(
     private val cameraManager: CameraManager,

@@ -14,19 +14,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
-import tech.khana.reflekt.core.*
-import tech.khana.reflekt.core.AspectRatio.AR_16X9
+import tech.khana.reflekt.core.ReflektSurface
+import tech.khana.reflekt.models.*
+import tech.khana.reflekt.models.AspectRatio.AR_16X9
 import tech.khana.reflekt.preview.Side.HEIGHT
 import tech.khana.reflekt.preview.Side.WIDTH
-
+import tech.khana.reflekt.utils.Logger
+import tech.khana.reflekt.utils.debug
 
 const val MAX_PREVIEW_WIDTH = 1920
 const val MAX_PREVIEW_HEIGHT = 1080
 
-class ReflektPreview constructor(
+class ReflektPreview @JvmOverloads constructor(
     ctx: Context,
     attrs: AttributeSet? = null
-) : FrameLayout(ctx, attrs), ReflektSurface {
+) : FrameLayout(ctx, attrs), ReflektSurface, Logger by Logger.defaultLogger {
 
     private var previewRotation = Rotation._0
     private var previewAspectRatio: AspectRatio = AR_16X9
@@ -45,31 +47,34 @@ class ReflektPreview constructor(
         addView(textureView)
 
         addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            previewLogger.debug { "#onLayout" }
+            debug { "#onLayout" }
             if (layoutMutex.isLocked) {
                 layoutMutex.unlock()
             }
         }
     }
 
-    override suspend fun acquireSurface(config: SurfaceConfig): TypedSurface = coroutineScope {
-        previewLogger.debug { "#acquireSurface" }
+    override suspend fun acquireSurface(config: SurfaceConfig): CameraSurface = coroutineScope {
+        debug { "#acquireSurface" }
         withContext(Dispatchers.Main) {
             val previewResolution = config.resolutions
-                .chooseOptimalResolution(config.previewAspectRatio)
-            this@ReflektPreview.previewAspectRatio = config.previewAspectRatio
+                .chooseOptimalResolution(config.aspectRatio)
+            this@ReflektPreview.previewAspectRatio = config.aspectRatio
             previewRotation = config.displayRotation
 
             requestLayout()
-            layoutMutex.twiceLock()
+            layoutMutex.lockSelf()
 
             val surfaceTexture = textureView.onSurfaceTextureAvailable()
             surfaceTexture.setDefaultBufferSize(
                 previewResolution.width, previewResolution.height
             )
 
-            previewLogger.debug { "#acquireSurface acquired" }
-            TypedSurface(SurfaceType.PREVIEW, Surface(surfaceTexture))
+            debug { "#acquireSurface acquired" }
+            CameraSurface(
+                CameraMode.PREVIEW,
+                Surface(surfaceTexture)
+            )
         }
     }
 
@@ -82,7 +87,7 @@ class ReflektPreview constructor(
             .last()
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        previewLogger.debug { "#onMeasure" }
+        debug { "#onMeasure" }
 
         val width = getSize(widthMeasureSpec)
         val height = getSize(heightMeasureSpec)
@@ -159,7 +164,7 @@ class ReflektPreview constructor(
                     }
                 }
             })
-            previewLogger.debug {
+            debug {
                 "#setMeasuredDimension(newWidth=$newWidth, height=$height)"
             }
             mutableSize.apply {
@@ -201,7 +206,7 @@ class ReflektPreview constructor(
                 }
             })
 
-            previewLogger.debug {
+            debug {
                 "#setMeasuredDimension(width=$width, newHeight=$newHeight)"
             }
             mutableSize.apply {
@@ -212,14 +217,7 @@ class ReflektPreview constructor(
     }
 }
 
-internal val previewLogger = object : Tag {
-
-    override val tag: String = "ReflektPreview"
-
-    override val level: LogLevel = LogLevel.DEFAULT
-}
-
-private suspend fun Mutex.twiceLock() {
+private suspend fun Mutex.lockSelf() {
     lock()
     lock()
 }
@@ -229,4 +227,4 @@ private enum class Side {
     WIDTH
 }
 
-data class MutableSize(var width: Int = 0, var height: Int = 0)
+private data class MutableSize(var width: Int = 0, var height: Int = 0)

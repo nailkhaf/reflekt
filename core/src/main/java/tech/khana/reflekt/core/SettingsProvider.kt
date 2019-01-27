@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import tech.khana.reflekt.models.*
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 
@@ -22,8 +23,8 @@ internal class SettingsProviderImpl(
         it.copy(flashMode = flashMode)
     }
 
-    override suspend fun lens(lens: Lens) = changeState {
-        it.copy(lens = lens)
+    override suspend fun lens(lensDirect: LensDirect) = changeState {
+        it.copy(lensDirect = lensDirect)
     }
 
     override suspend fun supportLevel(supportLevel: SupportLevel) = changeState {

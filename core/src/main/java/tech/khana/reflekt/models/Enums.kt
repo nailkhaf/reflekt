@@ -1,0 +1,41 @@
+package tech.khana.reflekt.models
+
+import android.annotation.SuppressLint
+import android.hardware.camera2.CameraMetadata
+
+
+enum class LensDirect {
+    FRONT,
+    BACK
+}
+
+enum class FlashMode {
+    AUTO,
+    ON,
+    OFF,
+    TORCH
+}
+
+enum class ZoomMode {
+    ON,
+    OFF
+}
+
+enum class CameraMode {
+    PREVIEW,
+    CAPTURE,
+    RECORD
+}
+
+
+@SuppressLint("InlinedApi")
+enum class SupportLevel(val value: Int, val description: String) {
+    LEVEL_3(CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_3, "Level 3 support"),
+    LEGACY(CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY, "Legacy support"),
+    FULL(CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_FULL, "Full support"),
+    LIMIT(CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED, "Limited support"),
+    EXTERNAL(
+        CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_EXTERNAL,
+        "External support, like limited"
+    )
+}

@@ -26,7 +26,7 @@ sealed class CameraException(message: String = "") : Exception(message) {
         CameraException("Something went wrong with camera service. Try close all cameras, restart device and reopen camera.")
 }
 
-internal fun cameraExceptionByErrorCode(errorCode: Int): Exception = when (errorCode) {
+internal fun cameraExceptionByErrorCode(errorCode: Int): CameraException = when (errorCode) {
 
     ERROR_CAMERA_IN_USE -> CameraException.CameraInUseException()
 
@@ -38,5 +38,5 @@ internal fun cameraExceptionByErrorCode(errorCode: Int): Exception = when (error
 
     ERROR_MAX_CAMERAS_IN_USE -> CameraException.CameraMaxCamerasInUseException()
 
-    else -> throw IllegalStateException("unknown camera error code")
+    else -> CameraException.CameraUnknownException()
 }

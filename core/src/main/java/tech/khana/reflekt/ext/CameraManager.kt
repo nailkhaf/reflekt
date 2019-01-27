@@ -1,26 +1,28 @@
-package tech.khana.reflekt.core
+package tech.khana.reflekt.ext
 
 import android.content.Context
 import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata
-import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.params.StreamConfigurationMap
-import android.util.Size
 import android.view.Surface
+import tech.khana.reflekt.models.LensDirect
+import tech.khana.reflekt.models.Resolution
+import tech.khana.reflekt.models.SupportLevel
+import tech.khana.reflekt.models.toResolution
 
 internal val Context.cameraManager
     get() = getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
-internal fun CameraManager.findCameraByLens(direct: Lens): String =
+internal fun CameraManager.findCameraByLens(direct: LensDirect): String =
     cameraIdList.first { directCamera(it) == direct }
 
-internal fun CameraManager.directCamera(cameraId: String): Lens {
+internal fun CameraManager.directCamera(cameraId: String): LensDirect {
     val lensFacing = getCameraCharacteristics(cameraId).get(CameraCharacteristics.LENS_FACING)
     return when (lensFacing) {
-        CameraMetadata.LENS_FACING_FRONT -> Lens.FRONT
-        CameraMetadata.LENS_FACING_BACK -> Lens.BACK
+        CameraMetadata.LENS_FACING_FRONT -> LensDirect.FRONT
+        CameraMetadata.LENS_FACING_BACK -> LensDirect.BACK
         else -> throw IllegalArgumentException("unknown direction")
     }
 }
@@ -82,18 +84,3 @@ internal fun CameraManager.sensorRect(cameraId: String): Rect {
     return characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
         ?: throw IllegalStateException()
 }
-
-internal fun Size.toResolution() = Resolution(width, height)
-
-
-internal fun List<TypedSurface>.byType(type: SurfaceType): List<Surface> =
-    filter { it.type == type }
-        .map { it.surface }
-
-internal fun Lens.invert() = when (this) {
-    Lens.FRONT -> Lens.BACK
-    Lens.BACK -> Lens.FRONT
-}
-
-internal fun CaptureRequest.Builder.addAllSurfaces(list: List<Surface>) =
-    list.forEach { addTarget(it) }

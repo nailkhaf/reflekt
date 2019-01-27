@@ -1,4 +1,4 @@
-package tech.khana.reflekt.core
+package tech.khana.reflekt.ext
 
 import android.annotation.SuppressLint
 import android.hardware.camera2.CameraCaptureSession
@@ -8,6 +8,8 @@ import android.hardware.camera2.CaptureRequest
 import android.os.Handler
 import android.os.HandlerThread
 import android.view.Surface
+import tech.khana.reflekt.core.CameraException
+import tech.khana.reflekt.core.cameraExceptionByErrorCode
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
