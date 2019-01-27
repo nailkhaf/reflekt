@@ -3,7 +3,7 @@ package tech.khana.reflekt.utils
 import android.util.Log
 import android.util.Log.*
 
-const val REFLEKT_TAG = "reflekt"
+const val REFLEKT_TAG = "reflekt-log"
 
 interface Logger {
 
@@ -22,7 +22,7 @@ interface Logger {
             override val level: Int = VERBOSE
 
             override fun log(level: Int, message: String, throwable: Throwable?) {
-                if (throwable != null) {
+                if (throwable == null) {
                     Log.println(level, tag, message)
                 } else {
                     Log.e(tag, message, throwable)

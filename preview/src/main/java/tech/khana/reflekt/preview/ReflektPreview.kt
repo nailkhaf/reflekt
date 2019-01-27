@@ -15,6 +15,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import tech.khana.reflekt.core.ReflektSurface
+import tech.khana.reflekt.ext.lockSelf
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.models.AspectRatio.AR_16X9
 import tech.khana.reflekt.preview.Side.HEIGHT
@@ -215,11 +216,6 @@ class ReflektPreview @JvmOverloads constructor(
             }
         }
     }
-}
-
-private suspend fun Mutex.lockSelf() {
-    lock()
-    lock()
 }
 
 private enum class Side {

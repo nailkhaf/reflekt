@@ -24,6 +24,9 @@ sealed class CameraException(message: String = "") : Exception(message) {
 
     class CameraServiceException :
         CameraException("Something went wrong with camera service. Try close all cameras, restart device and reopen camera.")
+
+    class CameraPermissionRequired :
+        CameraException("Camera permission required")
 }
 
 internal fun cameraExceptionByErrorCode(errorCode: Int): CameraException = when (errorCode) {

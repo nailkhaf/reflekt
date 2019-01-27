@@ -1,6 +1,5 @@
 package tech.khana.reflekt
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.view.LayoutInflater
@@ -28,6 +27,8 @@ class CameraFragment : Fragment(), CoroutineScope {
     private lateinit var camera: ReflektCamera
 
     private var toggle = false
+
+    private lateinit var settings: Settings
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -63,74 +64,76 @@ class CameraFragment : Fragment(), CoroutineScope {
         val rotation =
             displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
         camera = ReflektCameraImpl(
-            requireActivity(), Settings(
-                surfaces = listOf(preview),
-                displayRotation = rotation
-            )
+            ctx = requireActivity()
+        )
+
+        settings = Settings(
+            surfaces = listOf(preview),
+            displayRotation = rotation
         )
 
 
-        aspectRatioButton.setOnClickListener {
-            launch {
-                val aspectRatios = camera.availablePreviewAspectRatios()
-                AlertDialog.Builder(requireActivity()).apply {
-                    setTitle(R.string.pick_aspect_ratio)
-                    setItems(aspectRatios.map { it.name }.toTypedArray()) { _, id ->
-                        this@CameraFragment.launch {
-                            camera.previewAspectRatio(aspectRatios[id])
-                        }
-                    }
-                    show()
-                }
-            }
-        }
+//        aspectRatioButton.setOnClickListener {
+//            launch {
+//                val aspectRatios = camera.availablePreviewAspectRatios()
+//                AlertDialog.Builder(requireActivity()).apply {
+//                    setTitle(R.string.pick_aspect_ratio)
+//                    setItems(aspectRatios.map { it.name }.toTypedArray()) { _, id ->
+//                        this@CameraFragment.launch {
+//                            camera.previewAspectRatio(aspectRatios[id])
+//                        }
+//                    }
+//                    show()
+//                }
+//            }
+//        }
 
-        switchLensButton.setOnClickListener {
-            launch {
-                val lenses = camera.availableLenses()
-                AlertDialog.Builder(requireActivity()).apply {
-                    setTitle(R.string.pick_lens_direct)
-                    setItems(lenses.map { it.name }.toTypedArray()) { _, id ->
-                        this@CameraFragment.launch {
-                            camera.lens(lenses[id])
-                        }
-                    }
-                    show()
-                }
-            }
-        }
+//        switchLensButton.setOnClickListener {
+//            launch {
+//                val lenses = camera.availableLenses()
+//                AlertDialog.Builder(requireActivity()).apply {
+//                    setTitle(R.string.pick_lens_direct)
+//                    setItems(lenses.map { it.name }.toTypedArray()) { _, id ->
+//                        this@CameraFragment.launch {
+//                            camera.lens(lenses[id])
+//                        }
+//                    }
+//                    show()
+//                }
+//            }
+//        }
 
-        flashButton.setOnClickListener {
-            launch {
-                val flashModes = camera.availableFlashModes()
-                AlertDialog.Builder(requireActivity()).apply {
-                    setTitle(R.string.pick_lens_direct)
-                    setItems(flashModes.map { it.name }.toTypedArray()) { _, id ->
-                        this@CameraFragment.launch {
-                            camera.flash(flashModes[id])
-                        }
-                    }
-                    show()
-                }
-            }
-        }
+//        flashButton.setOnClickListener {
+//            launch {
+//                val flashModes = camera.availableFlashModes()
+//                AlertDialog.Builder(requireActivity()).apply {
+//                    setTitle(R.string.pick_lens_direct)
+//                    setItems(flashModes.map { it.name }.toTypedArray()) { _, id ->
+//                        this@CameraFragment.launch {
+//                            camera.flash(flashModes[id])
+//                        }
+//                    }
+//                    show()
+//                }
+//            }
+//        }
 
-        runBlocking {
-            val maxZoom = camera.maxZoom()
-            zoomSeekBar.onProgressChanged {
-                if (it % 5 == 0) {
-                    this@CameraFragment.launch {
-                        camera.zoom(maxZoom * it / zoomSeekBar.max)
-                    }
-                }
-            }
-        }
+//        runBlocking {
+//            val maxZoom = camera.maxZoom()
+//            zoomSeekBar.onProgressChanged {
+//                if (it % 5 == 0) {
+//                    this@CameraFragment.launch {
+//                        camera.zoom(maxZoom * it / zoomSeekBar.max)
+//                    }
+//                }
+//            }
+//        }
     }
 
     override fun onResume() {
         super.onResume()
         launch {
-            camera.open()
+            camera.open(settings)
             camera.startSession()
             camera.startPreview()
         }
