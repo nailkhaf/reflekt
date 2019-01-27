@@ -29,6 +29,6 @@ internal suspend fun TextureView.onSurfaceTextureAvailable() =
             override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
             }
 
-            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = false
+            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = true
         }
     }
