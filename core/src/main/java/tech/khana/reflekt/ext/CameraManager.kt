@@ -31,13 +31,13 @@ fun CameraManager.availableLenses(): List<LensDirect> = cameraIdList.map { direc
 
 fun CameraManager.outputResolutions(
     cameraId: String,
-    clazz: Class<out Any>
+    klass: Class<out Any>
 ): List<Resolution> {
     val characteristics = getCameraCharacteristics(cameraId)
     val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!
-    if (StreamConfigurationMap.isOutputSupportedFor(clazz).not())
-        throw IllegalArgumentException("Class is nut supported: ${clazz.simpleName}")
-    return map.getOutputSizes(clazz).map { it.toResolution() }
+    if (StreamConfigurationMap.isOutputSupportedFor(klass).not())
+        throw IllegalArgumentException("Class is nut supported: ${klass.simpleName}")
+    return map.getOutputSizes(klass).map { it.toResolution() }
 }
 
 fun CameraManager.outputResolutions(cameraId: String, format: Int): List<Resolution> {

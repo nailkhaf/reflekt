@@ -19,9 +19,11 @@ class FrameProcessor(
     private val maxSide: Int = MAX_SIDE
 ) : ReflektSurface, ImageReader.OnImageAvailableListener {
 
+    override val format = ReflektFormat.Image.Yuv
+    override val supportedModes = setOf(CameraMode.PREVIEW)
+
     private val dispatcher = Handler(handlerThread.looper).asCoroutineDispatcher(REFLEKT_TAG)
     private var imageReader: ImageReader? = null
-    override val format = ReflektFormat.Image.Yuv
 
     override suspend fun acquireSurface(config: SurfaceConfig) = coroutineScope {
         withContext(dispatcher) {
@@ -33,7 +35,7 @@ class FrameProcessor(
             }
 
             this@FrameProcessor.imageReader = imageReader
-            CameraSurface(CameraMode.PREVIEW, imageReader.surface)
+            imageReader.surface
         }
     }
 

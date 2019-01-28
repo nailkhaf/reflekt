@@ -1,6 +1,7 @@
 package tech.khana.reflekt.core
 
 import android.hardware.camera2.CaptureRequest
+import android.view.Surface
 import tech.khana.reflekt.models.*
 
 interface Reflekt {
@@ -50,7 +51,15 @@ interface ReflektSurface {
 
     val format: ReflektFormat
 
-    suspend fun acquireSurface(config: SurfaceConfig): CameraSurface
+    val supportedModes: Set<CameraMode>
+
+    suspend fun acquireSurface(config: SurfaceConfig): Surface
+
+    suspend fun onStart(cameraMode: CameraMode) {
+    }
+
+    suspend fun onStop(cameraMode: CameraMode) {
+    }
 
     suspend fun release() {
     }

@@ -4,18 +4,19 @@ import android.Manifest.permission.CAMERA
 import android.content.Context
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW
-import android.hardware.camera2.CameraDevice.TEMPLATE_STILL_CAPTURE
+import android.hardware.camera2.CameraDevice.*
 import android.hardware.camera2.CaptureResult
 import android.os.Handler
 import android.os.HandlerThread
 import android.support.v4.content.ContextCompat
 import android.support.v4.content.PermissionChecker.PERMISSION_GRANTED
+import android.view.Surface
 import kotlinx.coroutines.*
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import tech.khana.reflekt.ext.*
 import tech.khana.reflekt.models.*
+import tech.khana.reflekt.models.CameraMode.*
 import tech.khana.reflekt.preferences.JpegPreference
 import tech.khana.reflekt.preferences.ZoomPreference
 import tech.khana.reflekt.utils.Logger
@@ -35,7 +36,8 @@ class ReflektCameraImpl(
 
     private var cameraDevice: CameraDevice? = null
     private var captureSession: CameraCaptureSession? = null
-    private var currentSurfaces: List<CameraSurface>? = null
+    private var currentSurfaces: Map<CameraMode, List<Surface>> = emptyMap()
+    private var currentReflekts: List<ReflektSurface> = emptyList()
 
     private var pendingException: CameraException? = null
     private val cameraOpenMutex = Mutex()
@@ -116,36 +118,42 @@ class ReflektCameraImpl(
             JpegPreference.hardwareRotation = hardwareRotation
             JpegPreference.displayRotation = displayRotation
 
-            val surfaces = reflektSurfaces.map { cameraSurface ->
-                yield()
+            val surfaces = reflektSurfaces
+                .map { reflektSurface ->
+                    yield()
 
-                val format = cameraSurface.format
-                val outputResolutions = when (format) {
-                    is ReflektFormat.Image -> cameraManager.outputResolutions(
-                        cameraDevice.id, format.format
+                    val outputResolutions = when (val format = reflektSurface.format) {
+                        is ReflektFormat.Image -> cameraManager.outputResolutions(
+                            cameraDevice.id, format.format
+                        )
+                        is ReflektFormat.Clazz -> cameraManager.outputResolutions(
+                            cameraDevice.id, format.klass
+                        )
+                    }
+
+                    val surfaceConfig = SurfaceConfig(
+                        outputResolutions,
+                        aspectRatio,
+                        displayRotation,
+                        hardwareRotation,
+                        cameraManager.directCamera(cameraDevice.id)
                     )
-                    is ReflektFormat.Clazz -> cameraManager.outputResolutions(
-                        cameraDevice.id, format.clazz
-                    )
-                }
 
-                val surfaceConfig = SurfaceConfig(
-                    outputResolutions,
-                    aspectRatio,
-                    displayRotation,
-                    hardwareRotation,
-                    cameraManager.directCamera(cameraDevice.id)
-                )
-
-                async {
-                    withTimeout(5000) {
-                        cameraSurface.acquireSurface(surfaceConfig)
+                    async {
+                        withTimeout(5000) {
+                            reflektSurface to reflektSurface.acquireSurface(surfaceConfig)
+                        }
                     }
                 }
-            }.map { it.await() }
+                .map { it.await() }
+                .flatMap { (reflekt, surface) ->
+                    reflekt.supportedModes.map { it to surface }
+                }
+                .groupBy(keySelector = { it.first }, valueTransform = { it.second })
 
-            captureSession = cameraDevice.createCaptureSession(surfaces.map { it.surface }, handlerThread)
+            captureSession = cameraDevice.createCaptureSession(surfaces.values.flatten().distinct(), handlerThread)
             currentSurfaces = surfaces
+            currentReflekts = reflektSurfaces
         }
     }
 
@@ -157,16 +165,18 @@ class ReflektCameraImpl(
             pendingException?.let { throw it }
             check(cameraDevice != null) { "camera is not opened" }
             check(session != null) { "session is not started" }
-            check(surfaces != null)
-            val previewSurfaces = surfaces.byType(CameraMode.PREVIEW)
-            check(previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
+
+            val previewSurfaces = surfaces[PREVIEW]
+            check(previewSurfaces != null && previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
 
             val request = session.device.createCaptureRequest(TEMPLATE_PREVIEW).run {
                 addAllSurfaces(previewSurfaces)
-                cameraPreferences.forEach { with(it) { apply(CameraMode.PREVIEW) } }
+                cameraPreferences.forEach { with(it) { apply(PREVIEW) } }
                 build()
             }
+
             session.setRepeatingRequest(request)
+            currentReflekts.filter { PREVIEW in it.supportedModes }.forEach { it.onStart(PREVIEW) }
         }
     }
 
@@ -177,46 +187,77 @@ class ReflektCameraImpl(
             pendingException?.let { throw it }
             check(cameraDevice != null) { "camera is not opened" }
             check(session != null) { "session is not started" }
-            check(surfaces != null)
-            val previewSurfaces = surfaces.byType(CameraMode.PREVIEW)
-            val captureSurfaces = surfaces.byType(CameraMode.CAPTURE)
-            check(previewSurfaces.isNotEmpty()) { "preview surfaces is empty" } // FIXME
-            check(captureSurfaces.isNotEmpty()) { "capture surfaces is empty" }
+            val helperSurfaces = surfaces[HELPER]
+            val captureSurfaces = surfaces[CAPTURE]
+            check(helperSurfaces != null && helperSurfaces.isNotEmpty()) { "preview surfaces is empty" }
+            check(captureSurfaces != null && captureSurfaces.isNotEmpty()) { "capture surfaces is empty" }
+
+            currentReflekts.filter { CAPTURE in it.supportedModes }.forEach { it.onStart(CAPTURE) }
 
             if (cameraManager.supportFocus(session.device.id)) {
                 var focusState = -1
                 while (focusState != CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED) {
-                    focusState = session.lockFocus(handlerThread, previewSurfaces)
+                    focusState = session.lockFocus(handlerThread, helperSurfaces)
                 }
             }
 
             if (cameraManager.supportExposure(session.device.id)) {
                 var exposureState = -1
                 while (exposureState != CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                    exposureState = session.preCaptureExposure(handlerThread, previewSurfaces)
+                    exposureState = session.preCaptureExposure(handlerThread, helperSurfaces)
                 }
             }
 
             val request = session.device.createCaptureRequest(TEMPLATE_STILL_CAPTURE).run {
                 addAllSurfaces(captureSurfaces)
-                cameraPreferences.forEach { with(it) { apply(CameraMode.CAPTURE) } }
+                cameraPreferences.forEach { with(it) { apply(CAPTURE) } }
                 build()
             }
+
             session.capture(request, handlerThread)
 
+            currentReflekts.filter { CAPTURE in it.supportedModes }.forEach { it.onStop(CAPTURE) }
+
             if (cameraManager.supportFocus(session.device.id)) {
-                session.unLockFocus(handlerThread, previewSurfaces)
+                session.unLockFocus(handlerThread, helperSurfaces)
             }
 
             Unit
         }
     }
 
-    override suspend fun startRecord() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override suspend fun startRecord() = coroutineScope {
+        debug { "#startRecord" }
+        withContext(cameraDispatcher) {
+            val session = captureSession
+            val surfaces = currentSurfaces
+            pendingException?.let { throw it }
+            check(cameraDevice != null) { "camera is not opened" }
+            check(session != null) { "session is not started" }
+            val recordSurfaces = surfaces[RECORD]
+            check(recordSurfaces != null && recordSurfaces.isNotEmpty()) { "record surfaces is empty" } // FIXME
+
+            val request = session.device.createCaptureRequest(TEMPLATE_RECORD).run {
+                addAllSurfaces(recordSurfaces)
+                cameraPreferences.forEach { with(it) { apply(RECORD) } }
+                build()
+            }
+
+            session.setRepeatingRequest(request)
+
+            currentReflekts.filter { RECORD in it.supportedModes }.forEach { it.onStart(RECORD) }
+
+            Unit
+        }
     }
 
-    override suspend fun stopRecord() {
+    override suspend fun stopRecord() = coroutineScope {
+        debug { "#stopRecord" }
+        withContext(cameraDispatcher) {
+            captureSession?.abortCaptures()
+            captureSession?.stopRepeating()
+            currentReflekts.filter { RECORD in it.supportedModes }.forEach { it.onStop(RECORD) }
+        }
     }
 
     override suspend fun stopPreview() = coroutineScope {
@@ -224,7 +265,7 @@ class ReflektCameraImpl(
         withContext(cameraDispatcher) {
             captureSession?.abortCaptures()
             captureSession?.stopRepeating()
-            Unit
+            currentReflekts.filter { PREVIEW in it.supportedModes }.forEach { it.onStop(PREVIEW) }
         }
     }
 
@@ -235,7 +276,6 @@ class ReflektCameraImpl(
             stopRecord()
             captureSession?.close()
             captureSession = null
-            currentSurfaces = null
         }
     }
 

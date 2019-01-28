@@ -34,8 +34,22 @@ class SimpleReflekt(
         }
     }
 
+    suspend fun startRecord() = coroutineScope {
+        withContext(cameraDispatcher) {
+            camera.stopPreview()
+            camera.startRecord()
+        }
+    }
+
+    suspend fun stopRecord() = coroutineScope {
+        withContext(cameraDispatcher) {
+            camera.stopRecord()
+            camera.startPreview()
+        }
+    }
+
     suspend fun capture() = coroutineScope {
-        with(cameraDispatcher) {
+        withContext(cameraDispatcher) {
             camera.capture()
         }
     }

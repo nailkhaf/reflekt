@@ -29,7 +29,8 @@ enum class ZoomMode {
 enum class CameraMode {
     PREVIEW,
     CAPTURE,
-    RECORD
+    RECORD,
+    HELPER
 }
 
 

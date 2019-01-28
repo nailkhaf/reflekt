@@ -7,6 +7,7 @@ import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
 import android.support.media.ExifInterface
+import android.view.Surface
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
@@ -24,13 +25,19 @@ class CaptureSaverJpg(
 
     private val captureDispatcher = Handler(handlerThread.looper).asCoroutineDispatcher(REFLEKT_TAG)
 
+    override val supportedModes = setOf(CameraMode.CAPTURE)
+
     private var imageReader: ImageReader? = null
 
     override val format = ReflektFormat.Image.Jpeg
 
     private var lensDirect = LensDirect.BACK
 
-    override suspend fun acquireSurface(config: SurfaceConfig): CameraSurface = coroutineScope {
+    init {
+        folder.mkdirs()
+    }
+
+    override suspend fun acquireSurface(config: SurfaceConfig): Surface = coroutineScope {
         withContext(captureDispatcher) {
 
             lensDirect = config.lensDirect
@@ -45,7 +52,7 @@ class CaptureSaverJpg(
 
             this@CaptureSaverJpg.imageReader = imageReader
 
-            CameraSurface(CameraMode.CAPTURE, imageReader.surface)
+            imageReader.surface
         }
     }
 

@@ -44,6 +44,8 @@ class ReflektPreview @JvmOverloads constructor(
         layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
     }
 
+    override val supportedModes = CameraMode.values().toSet()
+
     init {
         addView(textureView)
 
@@ -55,7 +57,7 @@ class ReflektPreview @JvmOverloads constructor(
         }
     }
 
-    override suspend fun acquireSurface(config: SurfaceConfig): CameraSurface = coroutineScope {
+    override suspend fun acquireSurface(config: SurfaceConfig): Surface = coroutineScope {
         debug { "#acquireSurface" }
         withContext(Dispatchers.Main) {
             val previewResolution = config.resolutions
@@ -73,10 +75,7 @@ class ReflektPreview @JvmOverloads constructor(
             )
 
             debug { "#acquireSurface acquired" }
-            CameraSurface(
-                CameraMode.PREVIEW,
-                Surface(surfaceTexture)
-            )
+            Surface(surfaceTexture)
         }
     }
 

@@ -1,6 +1,7 @@
 package tech.khana.reflekt
 
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v7.app.AlertDialog
@@ -18,6 +19,8 @@ import tech.khana.reflekt.models.LensDirect
 import tech.khana.reflekt.models.Settings
 import tech.khana.reflekt.models.displayRotationOf
 import tech.khana.reflekt.preview.ReflektPreview
+import tech.khana.reflekt.video.VideoRecorder
+import java.io.File
 import kotlin.coroutines.CoroutineContext
 
 class CameraFragment : Fragment(), CoroutineScope {
@@ -35,8 +38,10 @@ class CameraFragment : Fragment(), CoroutineScope {
 
     private lateinit var settings: Settings
 
+    private var isRecording = false
+
     private val captureSaver by lazy {
-        CaptureSaverJpg(context!!.cacheDir) {
+        CaptureSaverJpg(File(context!!.cacheDir, "photo")) {
             AlertDialog.Builder(context!!).run {
                 setView(ImageView(context).apply {
                     layoutParams = ViewGroup.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
@@ -45,6 +50,10 @@ class CameraFragment : Fragment(), CoroutineScope {
                 show()
             }
         }
+    }
+
+    private val videoRecorder by lazy {
+        VideoRecorder(File(context!!.cacheDir, "video"))
     }
 
     override fun onCreateView(
@@ -80,7 +89,7 @@ class CameraFragment : Fragment(), CoroutineScope {
 
         val rotation = displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
         settings = Settings(
-            surfaces = listOf(preview, captureSaver),
+            surfaces = listOf(preview, captureSaver, videoRecorder),
             displayRotation = rotation,
             lensDirect = LensDirect.FRONT
         )
@@ -104,6 +113,19 @@ class CameraFragment : Fragment(), CoroutineScope {
         switchButton.setOnClickListener {
             launch {
                 camera.switchLens()
+            }
+        }
+
+        recordButton.setOnClickListener {
+            launch {
+                isRecording = isRecording.not()
+                if (isRecording) {
+                    recordButton.setColorFilter(Color.RED)
+                    camera.startRecord()
+                } else {
+                    recordButton.setColorFilter(Color.WHITE)
+                    camera.stopRecord()
+                }
             }
         }
 
