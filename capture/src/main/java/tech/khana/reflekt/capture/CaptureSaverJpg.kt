@@ -43,6 +43,8 @@ class CaptureSaverJpg(
                 setOnImageAvailableListener(this@CaptureSaverJpg, Handler(handlerThread.looper))
             }
 
+            this@CaptureSaverJpg.imageReader = imageReader
+
             CameraSurface(CameraMode.CAPTURE, imageReader.surface)
         }
     }

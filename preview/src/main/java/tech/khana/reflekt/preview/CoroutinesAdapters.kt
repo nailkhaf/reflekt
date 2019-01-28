@@ -5,6 +5,7 @@ import android.view.TextureView
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+// FIXME
 internal suspend fun TextureView.onSurfaceTextureAvailable() =
     suspendCoroutine<SurfaceTexture> { continuation ->
 
