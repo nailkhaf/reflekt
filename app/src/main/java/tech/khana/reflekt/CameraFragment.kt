@@ -7,14 +7,13 @@ import android.support.v7.app.AlertDialog
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.ImageView
 import android.widget.SeekBar
 import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.*
-import tech.khana.reflekt.capture.CaptureSaver
-import tech.khana.reflekt.core.ReflektCamera
-import tech.khana.reflekt.core.ReflektCameraImpl
+import tech.khana.reflekt.capture.CaptureSaverJpg
+import tech.khana.reflekt.core.SimpleReflekt
 import tech.khana.reflekt.models.LensDirect
 import tech.khana.reflekt.models.Settings
 import tech.khana.reflekt.models.displayRotationOf
@@ -30,17 +29,17 @@ class CameraFragment : Fragment(), CoroutineScope {
 
     private lateinit var preview: ReflektPreview
 
-    private lateinit var camera: ReflektCamera
+    private lateinit var camera: SimpleReflekt
 
     private var toggle = false
 
     private lateinit var settings: Settings
 
     private val captureSaver by lazy {
-        CaptureSaver(context!!.cacheDir) {
+        CaptureSaverJpg(context!!.cacheDir) {
             AlertDialog.Builder(context!!).run {
                 setView(ImageView(context).apply {
-                    layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                    layoutParams = ViewGroup.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
                     setImageBitmap(BitmapFactory.decodeFile(it.absolutePath))
                 })
                 show()
@@ -79,9 +78,13 @@ class CameraFragment : Fragment(), CoroutineScope {
 //            }
 //        }
 
-        camera = ReflektCameraImpl(
-            ctx = requireActivity()
+        val rotation = displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
+        settings = Settings(
+            surfaces = listOf(preview, captureSaver),
+            displayRotation = rotation,
+            lensDirect = LensDirect.FRONT
         )
+        camera = SimpleReflekt(context!!, settings)
 
 //        aspectRatioButton.setOnClickListener {
 //            launch {
@@ -98,20 +101,11 @@ class CameraFragment : Fragment(), CoroutineScope {
 //            }
 //        }
 
-//        switchLensButton.setOnClickListener {
-//            launch {
-//                val lenses = camera.availableLenses()
-//                AlertDialog.Builder(requireActivity()).apply {
-//                    setTitle(R.string.pick_lens_direct)
-//                    setItems(lenses.map { it.name }.toTypedArray()) { _, id ->
-//                        this@CameraFragment.launch {
-//                            camera.lens(lenses[id])
-//                        }
-//                    }
-//                    show()
-//                }
-//            }
-//        }
+        switchButton.setOnClickListener {
+            launch {
+                camera.switchLens()
+            }
+        }
 
 //        flashButton.setOnClickListener {
 //            launch {
@@ -146,26 +140,17 @@ class CameraFragment : Fragment(), CoroutineScope {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        val rotation =
-            displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
-        settings = Settings(
-            surfaces = listOf(preview, captureSaver),
-            displayRotation = rotation,
-            lensDirect = LensDirect.BACK
-        )
+    override fun onStart() {
+        super.onStart()
         launch {
-            camera.open(settings)
-            camera.startSession()
-            camera.startPreview()
+            camera.start()
         }
     }
 
     override fun onPause() {
         super.onPause()
         runBlocking {
-            camera.close()
+            camera.stop()
         }
     }
 

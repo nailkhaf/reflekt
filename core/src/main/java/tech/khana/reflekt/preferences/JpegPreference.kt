@@ -19,6 +19,8 @@ object JpegPreference : CameraPreference {
         cameraMode == CameraMode.CAPTURE -> {
             val jpegOrientation = getJpegOrientation(lensDirect, hardwareRotation, displayRotation)
             set(CaptureRequest.JPEG_ORIENTATION, jpegOrientation)
+            set(CaptureRequest.JPEG_QUALITY, 100)
+
         }
         else -> {
             // nothing

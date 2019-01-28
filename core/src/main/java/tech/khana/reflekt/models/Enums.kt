@@ -9,6 +9,11 @@ enum class LensDirect {
     BACK
 }
 
+fun LensDirect.switch() = when (this) {
+    LensDirect.BACK -> LensDirect.FRONT
+    LensDirect.FRONT -> LensDirect.BACK
+}
+
 enum class FlashMode {
     AUTO,
     ON,

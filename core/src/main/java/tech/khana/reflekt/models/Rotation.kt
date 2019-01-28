@@ -22,7 +22,7 @@ fun displayRotationOf(value: Int) = when (value) {
     else -> throw IllegalArgumentException("unknown display rotation")
 }
 
-fun hardwareRotationOf(value: Int) = when (value) {
+fun rotationOf(value: Int) = when (value) {
     0 -> Rotation._0
     90 -> Rotation._90
     180 -> Rotation._180

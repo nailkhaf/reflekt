@@ -5,14 +5,6 @@ import tech.khana.reflekt.models.*
 
 interface Reflekt {
 
-    fun availableLenses(): List<LensDirect>
-
-    fun availableFlashModes(lensDirect: LensDirect): List<FlashMode>
-
-    fun availablePreviewAspectRatios(lensDirect: LensDirect): List<AspectRatio>
-
-    fun maxZoom(lensDirect: LensDirect): Float
-
     suspend fun previewAspectRatio(aspectRatio: AspectRatio)
 
     suspend fun lens(lensDirect: LensDirect)
@@ -20,13 +12,19 @@ interface Reflekt {
     suspend fun flash(flashMode: FlashMode)
 
     suspend fun zoom(zoom: Float)
+
+    suspend fun release(): Any
 }
 
 interface ReflektCamera {
 
-    suspend fun open(settings: Settings)
+    suspend fun open(lensDirect: LensDirect)
 
-    suspend fun startSession()
+    suspend fun startSession(
+        reflektSurfaces: List<ReflektSurface>,
+        displayRotation: Rotation,
+        aspectRatio: AspectRatio
+    )
 
     suspend fun startPreview()
 
@@ -41,8 +39,6 @@ interface ReflektCamera {
     suspend fun stopRecord()
 
     suspend fun close()
-
-    suspend fun release()
 }
 
 interface CameraPreference {

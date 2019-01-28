@@ -64,6 +64,7 @@ class ReflektPreview @JvmOverloads constructor(
             previewRotation = config.displayRotation
 
             requestLayout()
+            if (layoutMutex.isLocked) layoutMutex.unlock()
             layoutMutex.lockSelf()
 
             val surfaceTexture = textureView.onSurfaceTextureAvailable()

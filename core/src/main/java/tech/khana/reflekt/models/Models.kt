@@ -17,7 +17,8 @@ data class SurfaceConfig(
     val resolutions: List<Resolution>,
     val aspectRatio: AspectRatio,
     val displayRotation: Rotation,
-    val hardwareRotation: Rotation = Rotation._0
+    val hardwareRotation: Rotation,
+    val lensDirect: LensDirect
 )
 
 data class CameraSurface(val type: CameraMode, val surface: Surface)
