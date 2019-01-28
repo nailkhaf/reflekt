@@ -10,6 +10,7 @@ import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.*
 import tech.khana.reflekt.core.ReflektCamera
 import tech.khana.reflekt.core.ReflektCameraImpl
+import tech.khana.reflekt.models.LensDirect
 import tech.khana.reflekt.models.Settings
 import tech.khana.reflekt.models.displayRotationOf
 import tech.khana.reflekt.preview.ReflektPreview
@@ -41,25 +42,25 @@ class CameraFragment : Fragment(), CoroutineScope {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         preview = reflektCamera
-        preview.setOnClickListener {
-            launch {
-                toggle = toggle.not()
-                when (toggle) {
-                    true -> {
-                        cameraControls.animate()
-                            .alpha(1f)
-                            .setDuration(300)
-                            .withStartAction { cameraControls.visibility = View.VISIBLE }
-                    }
-                    false -> {
-                        cameraControls.animate()
-                            .alpha(0f)
-                            .setDuration(300)
-                            .withEndAction { cameraControls.visibility = View.INVISIBLE }
-                    }
-                }
-            }
-        }
+//        preview.setOnClickListener {
+//            launch {
+//                toggle = toggle.not()
+//                when (toggle) {
+//                    true -> {
+//                        cameraControls.animate()
+//                            .alpha(1f)
+//                            .setDuration(300)
+//                            .withStartAction { cameraControls.visibility = View.VISIBLE }
+//                    }
+//                    false -> {
+//                        cameraControls.animate()
+//                            .alpha(0f)
+//                            .setDuration(300)
+//                            .withEndAction { cameraControls.visibility = View.INVISIBLE }
+//                    }
+//                }
+//            }
+//        }
 
         val rotation =
             displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
@@ -69,7 +70,8 @@ class CameraFragment : Fragment(), CoroutineScope {
 
         settings = Settings(
             surfaces = listOf(preview),
-            displayRotation = rotation
+            displayRotation = rotation,
+            lensDirect = LensDirect.BACK
         )
 
 

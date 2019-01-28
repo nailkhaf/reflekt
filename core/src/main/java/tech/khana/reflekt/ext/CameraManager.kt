@@ -86,3 +86,13 @@ fun CameraManager.sensorRect(cameraId: String): Rect {
     return characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
         ?: throw IllegalStateException()
 }
+
+fun CameraManager.supportFocus(cameraId: String): Boolean {
+    val characteristics = getCameraCharacteristics(cameraId)
+    return characteristics.get(CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES)?.size ?: 0 > 1
+}
+
+fun CameraManager.supportExposure(cameraId: String): Boolean {
+    val characteristics = getCameraCharacteristics(cameraId)
+    return characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES)?.size ?: 0 > 1
+}

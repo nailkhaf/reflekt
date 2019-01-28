@@ -1,8 +1,6 @@
 package tech.khana.reflekt.ext
 
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.*
 import android.os.Handler
 import android.os.HandlerThread
 import android.view.Surface
@@ -32,23 +30,91 @@ internal suspend fun CameraDevice.createCaptureSession(
 }
 
 internal suspend fun CameraCaptureSession.setRepeatingRequest(
-    request: CaptureRequest,
-    handlerThread: HandlerThread? = null
+    request: CaptureRequest
 ) = suspendCoroutine<Unit> { continuation ->
 
-    setRepeatingRequest(request, null,
-        handlerThread?.looper?.let { Handler(it) })
+    setRepeatingRequest(request, null, null)
 
     continuation.resume(Unit)
 }
 
 internal suspend fun CameraCaptureSession.capture(
     request: CaptureRequest,
-    handlerThread: HandlerThread? = null
+    handlerThread: HandlerThread
 ) = suspendCoroutine<Unit> { continuation ->
 
-    capture(request, null,
-        handlerThread?.looper?.let { Handler(it) })
+    capture(request, object : CameraCaptureSession.CaptureCallback() {
+
+        override fun onCaptureCompleted(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            result: TotalCaptureResult
+        ) {
+            continuation.resume(Unit)
+        }
+
+        override fun onCaptureFailed(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            failure: CaptureFailure
+        ) {
+            continuation.resumeWithException(IllegalStateException())
+        }
+    }, Handler(handlerThread.looper))
 
     continuation.resume(Unit)
+}
+
+internal suspend fun CameraCaptureSession.lockFocus(
+    handlerThread: HandlerThread
+) = suspendCoroutine<Int> { continuation ->
+    val request = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).run {
+        set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START)
+        build()
+    }
+    capture(request, object : CameraCaptureSession.CaptureCallback() {
+
+        override fun onCaptureCompleted(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            result: TotalCaptureResult
+        ) {
+            continuation.resume(result.get(CaptureResult.CONTROL_AF_STATE))
+        }
+
+        override fun onCaptureFailed(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            failure: CaptureFailure
+        ) {
+            continuation.resumeWithException(IllegalStateException())
+        }
+    }, Handler(handlerThread.looper))
+}
+
+internal suspend fun CameraCaptureSession.preCaptureExposure(
+    handlerThread: HandlerThread
+) = suspendCoroutine<Int> { continuation ->
+    val request = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).run {
+        set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START)
+        build()
+    }
+    capture(request, object : CameraCaptureSession.CaptureCallback() {
+
+        override fun onCaptureCompleted(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            result: TotalCaptureResult
+        ) {
+            continuation.resume(result.get(CaptureResult.CONTROL_AE_STATE))
+        }
+
+        override fun onCaptureFailed(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            failure: CaptureFailure
+        ) {
+            continuation.resumeWithException(IllegalStateException())
+        }
+    }, Handler(handlerThread.looper))
 }

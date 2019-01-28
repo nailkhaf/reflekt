@@ -4,6 +4,9 @@ import android.Manifest.permission.CAMERA
 import android.content.Context
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW
+import android.hardware.camera2.CameraDevice.TEMPLATE_STILL_CAPTURE
+import android.hardware.camera2.CaptureResult
 import android.os.Handler
 import android.os.HandlerThread
 import android.support.v4.content.ContextCompat
@@ -106,8 +109,8 @@ class ReflektCameraImpl(
                 val cameraDevice = cameraDevice
 
                 pendingException?.let { throw it }
-                check(captureSession == null) { "session is not closed" }
                 check(cameraDevice != null) { "camera is not opened" }
+                check(captureSession == null) { "session is not closed" }
 
                 val surfaces = currentSettings.surfaces.map { cameraSurface ->
                     yield()
@@ -147,25 +150,56 @@ class ReflektCameraImpl(
     override suspend fun startPreview() = coroutineScope {
         debug { "#startPreview" }
         withContext(cameraDispatcher) {
-            val device = cameraDevice
-            val session = captureSession
-            val surfaces = currentSurfaces
-            check(device != null) { "camera is not opened" }
-            check(session != null) { "session is not started" }
-            check(surfaces != null)
+            commonLock.withLock {
+                val session = captureSession
+                val surfaces = currentSurfaces
+                pendingException?.let { throw it }
+                check(cameraDevice != null) { "camera is not opened" }
+                check(session != null) { "session is not started" }
+                check(surfaces != null)
 
-            device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).let { requestBuilder ->
-                requestBuilder.addAllSurfaces(surfaces.byType(CameraMode.PREVIEW))
-                cameraPreferences.forEach {
-                    with(it) { requestBuilder.apply(CameraMode.PREVIEW) }
+                val request = session.device.createCaptureRequest(TEMPLATE_PREVIEW).run {
+                    addAllSurfaces(surfaces.byType(CameraMode.PREVIEW))
+                    cameraPreferences.forEach { with(it) { apply(CameraMode.PREVIEW) } }
+                    build()
                 }
-                session.setRepeatingRequest(requestBuilder.build())
+                session.setRepeatingRequest(request)
             }
         }
     }
 
-    override suspend fun capture() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override suspend fun capture() = coroutineScope {
+        withContext(cameraDispatcher) {
+            commonLock.withLock {
+                val session = captureSession
+                val surfaces = currentSurfaces
+                pendingException?.let { throw it }
+                check(cameraDevice != null) { "camera is not opened" }
+                check(session != null) { "session is not started" }
+                check(surfaces != null)
+
+                if (cameraManager.supportFocus(session.device.id)) {
+                    var focusState = -1
+                    while (focusState != CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED) {
+                        focusState = session.lockFocus(handlerThread)
+                    }
+                }
+
+                if (cameraManager.supportExposure(session.device.id)) {
+                    var exposureState = -1
+                    while (exposureState != CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                        exposureState = session.preCaptureExposure(handlerThread)
+                    }
+                }
+
+                val request = session.device.createCaptureRequest(TEMPLATE_STILL_CAPTURE).run {
+                    addAllSurfaces(surfaces.byType(CameraMode.CAPTURE))
+                    cameraPreferences.forEach { with(it) { apply(CameraMode.CAPTURE) } }
+                    build()
+                }
+                session.capture(request, handlerThread)
+            }
+        }
     }
 
     override suspend fun startRecord() {
