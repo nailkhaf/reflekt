@@ -11,7 +11,7 @@
         android:layout_height="wrap_content" />
 
     <ImageView
-        android:id="@+id/shoot"
+        android:id="@+id/shootButton"
         android:layout_width="64dp"
         android:layout_height="64dp"
         android:layout_gravity="bottom|center"

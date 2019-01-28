@@ -1,1 +1,1 @@
-include ':app', ':core', ':preview'
+include ':app', ':core', ':preview', ':capture'

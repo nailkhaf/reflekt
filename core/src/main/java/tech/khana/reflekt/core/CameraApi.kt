@@ -28,19 +28,21 @@ interface ReflektCamera {
 
     suspend fun startSession()
 
-    suspend fun stopSession()
-
     suspend fun startPreview()
-
-    suspend fun stopPreview()
 
     suspend fun capture()
 
     suspend fun startRecord()
 
+    suspend fun stopSession()
+
+    suspend fun stopPreview()
+
     suspend fun stopRecord()
 
     suspend fun close()
+
+    suspend fun release()
 }
 
 interface CameraPreference {
@@ -53,4 +55,7 @@ interface ReflektSurface {
     val format: ReflektFormat
 
     suspend fun acquireSurface(config: SurfaceConfig): CameraSurface
+
+    suspend fun release() {
+    }
 }

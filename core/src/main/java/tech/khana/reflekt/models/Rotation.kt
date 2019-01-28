@@ -23,10 +23,10 @@ fun displayRotationOf(value: Int) = when (value) {
 }
 
 fun hardwareRotationOf(value: Int) = when (value) {
-    0 -> Rotation._180
-    90 -> Rotation._270
-    180 -> Rotation._0
-    270 -> Rotation._90
+    0 -> Rotation._0
+    90 -> Rotation._90
+    180 -> Rotation._180
+    270 -> Rotation._270
     else -> throw IllegalArgumentException("unknown hardware rotation")
 }
 

@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import tech.khana.reflekt.ext.*
 import tech.khana.reflekt.models.*
+import tech.khana.reflekt.preferences.JpegPreference
 import tech.khana.reflekt.preferences.ZoomPreference
 import tech.khana.reflekt.utils.Logger
 import tech.khana.reflekt.utils.debug
@@ -26,7 +27,7 @@ import tech.khana.reflekt.utils.warn
 class ReflektCameraImpl(
     private val ctx: Context,
     private val handlerThread: HandlerThread = HandlerThread("").apply { start() },
-    private val cameraPreferences: List<CameraPreference> = emptyList()
+    private val cameraPreferences: List<CameraPreference> = listOf(JpegPreference)
 ) : ReflektCamera, Logger by Logger.defaultLogger {
 
     private val cameraManager = ctx.cameraManager
@@ -81,6 +82,9 @@ class ReflektCameraImpl(
 
                 val id = cameraManager.findCameraByLens(settings.lensDirect)
 
+                JpegPreference.displayRotation = settings.displayRotation
+                ZoomPreference.sensorRect = cameraManager.sensorRect(id)
+
                 if (ContextCompat.checkSelfPermission(ctx, CAMERA) == PERMISSION_GRANTED) {
                     try {
                         cameraManager.openCamera(id, cameraDeviceCallbacks, Handler(handlerThread.looper))
@@ -92,8 +96,6 @@ class ReflektCameraImpl(
                 } else {
                     throw CameraException.CameraPermissionRequired()
                 }
-
-                ZoomPreference.sensorRect = cameraManager.sensorRect(id)
 
                 cameraOpenMutex.lockSelf()
                 pendingException?.let { throw it }
@@ -109,8 +111,13 @@ class ReflektCameraImpl(
                 val cameraDevice = cameraDevice
 
                 pendingException?.let { throw it }
+
+                require(currentSettings.surfaces.isNotEmpty()) { "surfaces is empty" }
                 check(cameraDevice != null) { "camera is not opened" }
                 check(captureSession == null) { "session is not closed" }
+
+                val hardwareRotation = hardwareRotationOf(cameraManager.hardwareRotation(cameraDevice.id))
+                JpegPreference.hardwareRotation = hardwareRotation
 
                 val surfaces = currentSettings.surfaces.map { cameraSurface ->
                     yield()
@@ -124,8 +131,6 @@ class ReflektCameraImpl(
                             cameraDevice.id, format.clazz
                         )
                     }
-
-                    val hardwareRotation = hardwareRotationOf(cameraManager.hardwareRotation(cameraDevice.id))
 
                     val surfaceConfig = SurfaceConfig(
                         outputResolutions,
@@ -157,9 +162,11 @@ class ReflektCameraImpl(
                 check(cameraDevice != null) { "camera is not opened" }
                 check(session != null) { "session is not started" }
                 check(surfaces != null)
+                val previewSurfaces = surfaces.byType(CameraMode.PREVIEW)
+                check(previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
 
                 val request = session.device.createCaptureRequest(TEMPLATE_PREVIEW).run {
-                    addAllSurfaces(surfaces.byType(CameraMode.PREVIEW))
+                    addAllSurfaces(previewSurfaces)
                     cameraPreferences.forEach { with(it) { apply(CameraMode.PREVIEW) } }
                     build()
                 }
@@ -177,27 +184,37 @@ class ReflektCameraImpl(
                 check(cameraDevice != null) { "camera is not opened" }
                 check(session != null) { "session is not started" }
                 check(surfaces != null)
+                val previewSurfaces = surfaces.byType(CameraMode.PREVIEW)
+                val captureSurfaces = surfaces.byType(CameraMode.CAPTURE)
+                check(previewSurfaces.isNotEmpty()) { "preview surfaces is empty" } // FIXME
+                check(captureSurfaces.isNotEmpty()) { "capture surfaces is empty" }
 
                 if (cameraManager.supportFocus(session.device.id)) {
                     var focusState = -1
                     while (focusState != CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED) {
-                        focusState = session.lockFocus(handlerThread)
+                        focusState = session.lockFocus(handlerThread, previewSurfaces)
                     }
                 }
 
                 if (cameraManager.supportExposure(session.device.id)) {
                     var exposureState = -1
                     while (exposureState != CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                        exposureState = session.preCaptureExposure(handlerThread)
+                        exposureState = session.preCaptureExposure(handlerThread, previewSurfaces)
                     }
                 }
 
                 val request = session.device.createCaptureRequest(TEMPLATE_STILL_CAPTURE).run {
-                    addAllSurfaces(surfaces.byType(CameraMode.CAPTURE))
+                    addAllSurfaces(captureSurfaces)
                     cameraPreferences.forEach { with(it) { apply(CameraMode.CAPTURE) } }
                     build()
                 }
                 session.capture(request, handlerThread)
+
+                if (cameraManager.supportFocus(session.device.id)) {
+                    session.unLockFocus(handlerThread, previewSurfaces)
+                }
+
+                Unit
             }
         }
     }
@@ -207,7 +224,6 @@ class ReflektCameraImpl(
     }
 
     override suspend fun stopRecord() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override suspend fun stopPreview() = coroutineScope {
@@ -222,8 +238,8 @@ class ReflektCameraImpl(
     override suspend fun stopSession() = coroutineScope {
         debug { "#stopSession" }
         withContext(cameraDispatcher) {
-            captureSession?.stopRepeating()
-            captureSession?.abortCaptures()
+            stopPreview()
+            stopRecord()
             captureSession?.close()
             captureSession = null
             currentSurfaces = null
@@ -233,16 +249,24 @@ class ReflektCameraImpl(
     override suspend fun close() = coroutineScope {
         debug { "#close" }
         withContext(cameraDispatcher) {
-            captureSession?.stopRepeating()
-            captureSession?.abortCaptures()
-            captureSession?.close()
+            stopSession()
             cameraDevice?.close()
-            captureSession = null
-            currentSurfaces = null
+            cameraDevice = null
+            Unit
         }
     }
 
-//    override suspend fun previewAspectRatio(aspectRatio: AspectRatio) = coroutineScope {
+    override suspend fun release() = coroutineScope {
+        debug { "#release" }
+        withContext(cameraDispatcher) {
+            close()
+            currentSettings.surfaces.forEach { it.release() }
+            handlerThread.quitSafely()
+            Unit
+        }
+    }
+
+    //    override suspend fun previewAspectRatio(aspectRatio: AspectRatio) = coroutineScope {
 //        debug { "#aspectRatio" }
 //        withContext(cameraDispatcher) {
 //            val device = cameraDevice

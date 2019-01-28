@@ -1,13 +1,18 @@
 package tech.khana.reflekt
 
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.support.v4.app.Fragment
+import android.support.v7.app.AlertDialog
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.ImageView
 import android.widget.SeekBar
 import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.*
+import tech.khana.reflekt.capture.CaptureSaver
 import tech.khana.reflekt.core.ReflektCamera
 import tech.khana.reflekt.core.ReflektCameraImpl
 import tech.khana.reflekt.models.LensDirect
@@ -30,6 +35,18 @@ class CameraFragment : Fragment(), CoroutineScope {
     private var toggle = false
 
     private lateinit var settings: Settings
+
+    private val captureSaver by lazy {
+        CaptureSaver(context!!.cacheDir) {
+            AlertDialog.Builder(context!!).run {
+                setView(ImageView(context).apply {
+                    layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                    setImageBitmap(BitmapFactory.decodeFile(it.absolutePath))
+                })
+                show()
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -62,18 +79,9 @@ class CameraFragment : Fragment(), CoroutineScope {
 //            }
 //        }
 
-        val rotation =
-            displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
         camera = ReflektCameraImpl(
             ctx = requireActivity()
         )
-
-        settings = Settings(
-            surfaces = listOf(preview),
-            displayRotation = rotation,
-            lensDirect = LensDirect.BACK
-        )
-
 
 //        aspectRatioButton.setOnClickListener {
 //            launch {
@@ -130,10 +138,23 @@ class CameraFragment : Fragment(), CoroutineScope {
 //                }
 //            }
 //        }
+
+        shootButton.setOnClickListener {
+            launch {
+                camera.capture()
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        val rotation =
+            displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
+        settings = Settings(
+            surfaces = listOf(preview, captureSaver),
+            displayRotation = rotation,
+            lensDirect = LensDirect.BACK
+        )
         launch {
             camera.open(settings)
             camera.startSession()
@@ -150,6 +171,9 @@ class CameraFragment : Fragment(), CoroutineScope {
 
     override fun onDestroy() {
         super.onDestroy()
+        runBlocking {
+            camera.release()
+        }
         job.cancel()
     }
 
