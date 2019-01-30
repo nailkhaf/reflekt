@@ -4,8 +4,8 @@ import android.media.Image
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
+import android.view.Surface
 import kotlinx.coroutines.android.asCoroutineDispatcher
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import tech.khana.reflekt.core.ReflektSurface
 import tech.khana.reflekt.models.*
@@ -25,18 +25,16 @@ class FrameProcessor(
     private val dispatcher = Handler(handlerThread.looper).asCoroutineDispatcher(REFLEKT_TAG)
     private var imageReader: ImageReader? = null
 
-    override suspend fun acquireSurface(config: SurfaceConfig) = coroutineScope {
-        withContext(dispatcher) {
-            val resolution = config.resolutions.chooseOptimalResolution(config.aspectRatio)
+    override suspend fun acquireSurface(config: SurfaceConfig): Surface = withContext(dispatcher) {
+        val resolution = config.resolutions.chooseOptimalResolution(config.aspectRatio)
 
-            imageReader?.close()
-            val imageReader = ImageReader.newInstance(resolution.width, resolution.height, format.format, 2).apply {
-                setOnImageAvailableListener(this@FrameProcessor, Handler(handlerThread.looper))
-            }
-
-            this@FrameProcessor.imageReader = imageReader
-            imageReader.surface
+        imageReader?.close()
+        val imageReader = ImageReader.newInstance(resolution.width, resolution.height, format.format, 2).apply {
+            setOnImageAvailableListener(this@FrameProcessor, Handler(handlerThread.looper))
         }
+
+        this@FrameProcessor.imageReader = imageReader
+        imageReader.surface
     }
 
     private fun List<Resolution>.chooseOptimalResolution(aspectRatio: AspectRatio): Resolution =
@@ -51,11 +49,9 @@ class FrameProcessor(
         }
     }
 
-    override suspend fun release() = coroutineScope {
-        withContext(dispatcher) {
-            handlerThread.quitSafely()
-            imageReader?.close()
-            Unit
-        }
+    override suspend fun release() = withContext(dispatcher) {
+        handlerThread.quitSafely()
+        imageReader?.close()
+        Unit
     }
 }

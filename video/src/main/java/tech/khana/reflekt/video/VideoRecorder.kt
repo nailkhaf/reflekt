@@ -5,7 +5,6 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.view.Surface
 import kotlinx.coroutines.android.asCoroutineDispatcher
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import tech.khana.reflekt.core.ReflektSurface
 import tech.khana.reflekt.models.*
@@ -27,50 +26,46 @@ class VideoRecorder(
         folder.mkdirs()
     }
 
-    override suspend fun acquireSurface(config: SurfaceConfig): Surface = coroutineScope {
-        withContext(dispatcher) {
+    override suspend fun acquireSurface(config: SurfaceConfig): Surface = withContext(dispatcher) {
 
-            val resolution = config.resolutions.chooseOptimalResolution(config.aspectRatio)
-            val videoFile = File(folder, "${System.currentTimeMillis()}.mp4")
-            videoFile.createNewFile()
+        val resolution = config.resolutions.chooseOptimalResolution(config.aspectRatio)
+        val videoFile = File(folder, "${System.currentTimeMillis()}.mp4")
+        videoFile.createNewFile()
 
-            mediaRecorder?.release()
+        mediaRecorder?.release()
 
-            val mediaRecorder = MediaRecorder().apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
-                setVideoSource(MediaRecorder.VideoSource.SURFACE)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setOutputFile(videoFile.absolutePath)
-                setVideoEncodingBitRate(10000000)
-                setVideoFrameRate(30)
-                setVideoSize(resolution.width, resolution.height)
-                setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                prepare()
-            }
+        val mediaRecorder = MediaRecorder().apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setVideoSource(MediaRecorder.VideoSource.SURFACE)
+            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setOutputFile(videoFile.absolutePath)
+            setVideoEncodingBitRate(10000000)
+            setVideoFrameRate(30)
+            setVideoSize(resolution.width, resolution.height)
+            setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            prepare()
+        }
 
-            this@VideoRecorder.mediaRecorder = mediaRecorder
+        this@VideoRecorder.mediaRecorder = mediaRecorder
 
 //            mediaRecorder.setOrientationHint()
 
-            mediaRecorder.surface
-        }
+        mediaRecorder.surface
     }
 
-    override suspend fun onStart(cameraMode: CameraMode) = coroutineScope {
-        withContext(dispatcher) {
-            mediaRecorder?.start()
-            Unit
-        }
+    override suspend fun onStart(cameraMode: CameraMode) = withContext(dispatcher) {
+        mediaRecorder?.start()
+        Unit
     }
 
-    override suspend fun onStop(cameraMode: CameraMode) = coroutineScope {
-        withContext(dispatcher) {
-            mediaRecorder?.stop()
-            mediaRecorder?.reset()
-            Unit
-        }
+
+    override suspend fun onStop(cameraMode: CameraMode) = withContext(dispatcher) {
+        mediaRecorder?.stop()
+        mediaRecorder?.reset()
+        Unit
     }
+
 
     private fun List<Resolution>.chooseOptimalResolution(aspectRatio: AspectRatio): Resolution =
         asSequence()
@@ -78,11 +73,9 @@ class VideoRecorder(
             .sortedBy { it.area }
             .last()
 
-    override suspend fun release() = coroutineScope {
-        withContext(dispatcher) {
-            mediaRecorder?.release()
-            handlerThread.quitSafely()
-            Unit
-        }
+    override suspend fun release() = withContext(dispatcher) {
+        mediaRecorder?.release()
+        handlerThread.quitSafely()
+        Unit
     }
 }

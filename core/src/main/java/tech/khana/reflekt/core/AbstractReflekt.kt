@@ -5,7 +5,6 @@ import android.hardware.camera2.CameraManager
 import android.os.Handler
 import android.os.HandlerThread
 import kotlinx.coroutines.android.asCoroutineDispatcher
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import tech.khana.reflekt.ext.availableMaxZoom
 import tech.khana.reflekt.ext.cameraManager
@@ -19,7 +18,7 @@ import tech.khana.reflekt.preferences.ZoomPreference
 import tech.khana.reflekt.utils.REFLEKT_TAG
 
 abstract class AbstractReflekt(
-    private val ctx: Context,
+    ctx: Context,
     settings: Settings,
     private val handlerThread: HandlerThread,
     cameraPreferences: List<CameraPreference>
@@ -33,55 +32,45 @@ abstract class AbstractReflekt(
 
     protected var currentSettings = settings
 
-    override suspend fun previewAspectRatio(aspectRatio: AspectRatio) = coroutineScope {
-        withContext(cameraDispatcher) {
-            if (currentSettings.aspectRatio == aspectRatio) return@withContext
+    override suspend fun previewAspectRatio(aspectRatio: AspectRatio) = withContext(cameraDispatcher) {
+        if (currentSettings.aspectRatio == aspectRatio) return@withContext
 
-            camera.stopSession()
-            camera.startSession(currentSettings.surfaces, currentSettings.displayRotation, aspectRatio)
-            currentSettings = currentSettings.copy(aspectRatio = aspectRatio)
-        }
+        camera.stopSession()
+        camera.startSession(currentSettings.surfaces, currentSettings.displayRotation, aspectRatio)
+        currentSettings = currentSettings.copy(aspectRatio = aspectRatio)
     }
 
-    override suspend fun lens(lensDirect: LensDirect) = coroutineScope {
-        withContext(cameraDispatcher) {
-            if (lensDirect == currentSettings.lensDirect) return@withContext
+    override suspend fun lens(lensDirect: LensDirect) = withContext(cameraDispatcher) {
+        if (lensDirect == currentSettings.lensDirect) return@withContext
 
-            camera.close()
-            camera.open(lensDirect)
-            camera.startSession(currentSettings.surfaces, currentSettings.displayRotation, currentSettings.aspectRatio)
-            camera.startPreview()
-            currentSettings = currentSettings.copy(lensDirect = lensDirect)
-        }
+        camera.close()
+        camera.open(lensDirect)
+        camera.startSession(currentSettings.surfaces, currentSettings.displayRotation, currentSettings.aspectRatio)
+        camera.startPreview()
+        currentSettings = currentSettings.copy(lensDirect = lensDirect)
     }
 
-    override suspend fun flash(flashMode: FlashMode) = coroutineScope {
-        withContext(cameraDispatcher) {
-            if (flashMode == FlashPreference.flashMode) return@withContext
+    override suspend fun flash(flashMode: FlashMode) = withContext(cameraDispatcher) {
+        if (flashMode == FlashPreference.flashMode) return@withContext
 
-            camera.stopPreview()
-            FlashPreference.flashMode = flashMode
-            camera.startPreview()
-        }
+        camera.stopPreview()
+        FlashPreference.flashMode = flashMode
+        camera.startPreview()
     }
 
-    override suspend fun zoom(zoom: Float) = coroutineScope {
-        withContext(cameraDispatcher) {
-            val maxZoom = cameraManager.availableMaxZoom(cameraManager.findCameraByLens(currentSettings.lensDirect))
-            require(zoom <= maxZoom) { "zoom more max zoom" }
-            if (zoom == ZoomPreference.zoomLevel) return@withContext
+    override suspend fun zoom(zoom: Float) = withContext(cameraDispatcher) {
+        val maxZoom = cameraManager.availableMaxZoom(cameraManager.findCameraByLens(currentSettings.lensDirect))
+        require(zoom <= maxZoom) { "zoom more max zoom" }
+        if (zoom == ZoomPreference.zoomLevel) return@withContext
 
-            camera.stopPreview()
-            ZoomPreference.zoomLevel = zoom
-            camera.startPreview()
-        }
+        camera.stopPreview()
+        ZoomPreference.zoomLevel = zoom
+        camera.startPreview()
     }
 
-    override suspend fun release() = coroutineScope {
-        withContext(cameraDispatcher) {
-            camera.close()
-            currentSettings.surfaces.forEach { it.release() }
-            handlerThread.quitSafely()
-        }
+    override suspend fun release() = withContext(cameraDispatcher) {
+        camera.close()
+        currentSettings.surfaces.forEach { it.release() }
+        handlerThread.quitSafely()
     }
 }

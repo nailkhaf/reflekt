@@ -37,23 +37,21 @@ class CaptureSaverJpg(
         folder.mkdirs()
     }
 
-    override suspend fun acquireSurface(config: SurfaceConfig): Surface = coroutineScope {
-        withContext(captureDispatcher) {
+    override suspend fun acquireSurface(config: SurfaceConfig): Surface = withContext(captureDispatcher) {
 
-            lensDirect = config.lensDirect
+        lensDirect = config.lensDirect
 
-            val resolution = config.resolutions.chooseOptimalResolution(config.aspectRatio)
+        val resolution = config.resolutions.chooseOptimalResolution(config.aspectRatio)
 
-            imageReader?.close()
+        imageReader?.close()
 
-            val imageReader = ImageReader.newInstance(resolution.width, resolution.height, format.format, 2).apply {
-                setOnImageAvailableListener(this@CaptureSaverJpg, Handler(handlerThread.looper))
-            }
-
-            this@CaptureSaverJpg.imageReader = imageReader
-
-            imageReader.surface
+        val imageReader = ImageReader.newInstance(resolution.width, resolution.height, format.format, 2).apply {
+            setOnImageAvailableListener(this@CaptureSaverJpg, Handler(handlerThread.looper))
         }
+
+        this@CaptureSaverJpg.imageReader = imageReader
+
+        imageReader.surface
     }
 
     private fun List<Resolution>.chooseOptimalResolution(aspectRatio: AspectRatio): Resolution =

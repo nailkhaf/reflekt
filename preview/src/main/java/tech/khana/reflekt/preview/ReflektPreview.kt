@@ -11,7 +11,6 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import tech.khana.reflekt.core.ReflektSurface
@@ -57,26 +56,24 @@ class ReflektPreview @JvmOverloads constructor(
         }
     }
 
-    override suspend fun acquireSurface(config: SurfaceConfig): Surface = coroutineScope {
+    override suspend fun acquireSurface(config: SurfaceConfig): Surface = withContext(Dispatchers.Main) {
         debug { "#acquireSurface" }
-        withContext(Dispatchers.Main) {
-            val previewResolution = config.resolutions
-                .chooseOptimalResolution(config.aspectRatio)
-            this@ReflektPreview.previewAspectRatio = config.aspectRatio
-            previewRotation = config.displayRotation
+        val previewResolution = config.resolutions
+            .chooseOptimalResolution(config.aspectRatio)
+        this@ReflektPreview.previewAspectRatio = config.aspectRatio
+        previewRotation = config.displayRotation
 
-            requestLayout()
-            if (layoutMutex.isLocked) layoutMutex.unlock()
-            layoutMutex.lockSelf()
+        requestLayout()
+        if (layoutMutex.isLocked) layoutMutex.unlock()
+        layoutMutex.lockSelf()
 
-            val surfaceTexture = textureView.onSurfaceTextureAvailable()
-            surfaceTexture.setDefaultBufferSize(
-                previewResolution.width, previewResolution.height
-            )
+        val surfaceTexture = textureView.onSurfaceTextureAvailable()
+        surfaceTexture.setDefaultBufferSize(
+            previewResolution.width, previewResolution.height
+        )
 
-            debug { "#acquireSurface acquired" }
-            Surface(surfaceTexture)
-        }
+        debug { "#acquireSurface acquired" }
+        Surface(surfaceTexture)
     }
 
     private fun List<Resolution>.chooseOptimalResolution(aspectRatio: AspectRatio): Resolution =
