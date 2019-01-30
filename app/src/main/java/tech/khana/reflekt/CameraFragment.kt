@@ -25,10 +25,14 @@ import kotlin.coroutines.CoroutineContext
 
 class CameraFragment : Fragment(), CoroutineScope {
 
-    private val job = Job()
+    private val job = SupervisorJob()
+
+    private val handler = CoroutineExceptionHandler { _, exception ->
+        println("Caught: $exception")
+    }
 
     override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + job
+        get() = Dispatchers.Main + job + handler
 
     private lateinit var preview: ReflektPreview
 
@@ -169,10 +173,11 @@ class CameraFragment : Fragment(), CoroutineScope {
         }
     }
 
-    override fun onPause() {
-        super.onPause()
+    override fun onStop() {
+        super.onStop()
         runBlocking {
             camera.stop()
+            job.cancelChildren()
         }
     }
 
