@@ -8,8 +8,10 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.support.media.ExifInterface
 import android.view.Surface
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.android.asCoroutineDispatcher
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tech.khana.reflekt.core.ReflektSurface
 import tech.khana.reflekt.models.*
@@ -34,7 +36,7 @@ class CaptureSaverJpg(
     private var lensDirect = LensDirect.BACK
 
     init {
-        folder.mkdirs()
+        GlobalScope.launch(Dispatchers.IO) { folder.mkdirs() }
     }
 
     override suspend fun acquireSurface(config: SurfaceConfig): Surface = withContext(captureDispatcher) {
@@ -45,13 +47,11 @@ class CaptureSaverJpg(
 
         imageReader?.close()
 
-        val imageReader = ImageReader.newInstance(resolution.width, resolution.height, format.format, 2).apply {
+        ImageReader.newInstance(resolution.width, resolution.height, format.format, 2).apply {
             setOnImageAvailableListener(this@CaptureSaverJpg, Handler(handlerThread.looper))
-        }
-
-        this@CaptureSaverJpg.imageReader = imageReader
-
-        imageReader.surface
+        }.also {
+            imageReader = it
+        }.surface
     }
 
     private fun List<Resolution>.chooseOptimalResolution(aspectRatio: AspectRatio): Resolution =
@@ -69,9 +69,7 @@ class CaptureSaverJpg(
             val srcBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
             val neededRotation = rotationOf(bytes.inputStream().use {
-                ExifInterface(it).run {
-                    rotationDegrees
-                }
+                ExifInterface(it).run { rotationDegrees }
             })
 
             val matrix = Matrix().apply {
@@ -101,11 +99,10 @@ class CaptureSaverJpg(
         }
     }
 
-    override suspend fun release() = coroutineScope {
-        withContext(captureDispatcher) {
-            handlerThread.quit()
-            imageReader?.close()
-            Unit
-        }
+    override suspend fun release() = withContext(captureDispatcher) {
+        imageReader?.close()
+        imageReader = null
+        handlerThread.quitSafely()
+        Unit
     }
 }

@@ -5,6 +5,7 @@ import tech.khana.reflekt.core.CameraPreference
 import tech.khana.reflekt.models.CameraMode
 import tech.khana.reflekt.models.LensDirect
 import tech.khana.reflekt.models.Rotation
+import tech.khana.reflekt.models.rotationOf
 
 
 object JpegPreference : CameraPreference {
@@ -18,16 +19,15 @@ object JpegPreference : CameraPreference {
     override fun CaptureRequest.Builder.apply(cameraMode: CameraMode) = when {
         cameraMode == CameraMode.CAPTURE -> {
             val jpegOrientation = getJpegOrientation(lensDirect, hardwareRotation, displayRotation)
-            set(CaptureRequest.JPEG_ORIENTATION, jpegOrientation)
+            set(CaptureRequest.JPEG_ORIENTATION, jpegOrientation.value)
             set(CaptureRequest.JPEG_QUALITY, 100)
-
         }
         else -> {
             // nothing
         }
     }
 
-    private fun getJpegOrientation(lensDirect: LensDirect, hardwareRotation: Rotation, displayRotation: Rotation): Int {
+    fun getJpegOrientation(lensDirect: LensDirect, hardwareRotation: Rotation, displayRotation: Rotation): Rotation {
         var deviceOrientation = displayRotation.value
         val sensorOrientation = hardwareRotation.value
 
@@ -40,6 +40,6 @@ object JpegPreference : CameraPreference {
         // Calculate desired JPEG orientation relative to camera orientation to make
         // the image upright relative to the device orientation
 
-        return (sensorOrientation + deviceOrientation + 360) % 360
+        return rotationOf((sensorOrientation + deviceOrientation + 360) % 360)
     }
 }
