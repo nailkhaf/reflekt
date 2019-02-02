@@ -16,7 +16,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.yield
 import tech.khana.reflekt.ext.*
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.models.CameraMode.*
@@ -120,7 +119,6 @@ class ReflektCameraImpl(
 
         val surfaces = reflektSurfaces
             .map { reflektSurface ->
-                yield()
 
                 val outputResolutions = when (val format = reflektSurface.format) {
                     is ReflektFormat.Image -> cameraManager.outputResolutions(
