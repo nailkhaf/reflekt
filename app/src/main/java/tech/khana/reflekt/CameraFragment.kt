@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.support.v4.app.Fragment
 import android.support.v7.app.AlertDialog
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +20,7 @@ import tech.khana.reflekt.models.LensDirect
 import tech.khana.reflekt.models.Settings
 import tech.khana.reflekt.models.displayRotationOf
 import tech.khana.reflekt.preview.ReflektPreview
+import tech.khana.reflekt.utils.REFLEKT_TAG
 import tech.khana.reflekt.video.VideoRecorder
 import java.io.File
 import kotlin.coroutines.CoroutineContext
@@ -28,7 +30,7 @@ class CameraFragment : Fragment(), CoroutineScope {
     private val job = SupervisorJob()
 
     private val handler = CoroutineExceptionHandler { _, exception ->
-        println("Caught: $exception")
+        Log.e(REFLEKT_TAG, "${exception.message}", exception)
     }
 
     override val coroutineContext: CoroutineContext
@@ -159,6 +161,14 @@ class CameraFragment : Fragment(), CoroutineScope {
 //            }
 //        }
 
+        GlobalScope.launch {
+            //            error("error #1")
+        }
+
+        launch {
+            //            error("error #2")
+        }
+
         shootButton.setOnClickListener {
             launch {
                 camera.capture()
@@ -169,7 +179,12 @@ class CameraFragment : Fragment(), CoroutineScope {
     override fun onStart() {
         super.onStart()
         launch {
-            camera.start()
+            try {
+                camera.start()
+            } catch (e: Throwable) {
+                Log.e(REFLEKT_TAG, "", e)
+                throw e
+            }
         }
     }
 

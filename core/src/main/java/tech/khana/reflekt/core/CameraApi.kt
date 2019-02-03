@@ -53,7 +53,7 @@ interface ReflektSurface {
 
     val supportedModes: Set<CameraMode>
 
-    suspend fun acquireSurface(config: SurfaceConfig): Surface
+    suspend fun acquireSurface(config: SurfaceConfig): Surface?
 
     suspend fun onStart(cameraMode: CameraMode) {
     }

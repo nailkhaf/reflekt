@@ -15,7 +15,7 @@ import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import tech.khana.reflekt.ext.*
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.models.CameraMode.*
@@ -25,6 +25,7 @@ import tech.khana.reflekt.utils.Logger
 import tech.khana.reflekt.utils.debug
 import tech.khana.reflekt.utils.error
 import tech.khana.reflekt.utils.warn
+import java.util.concurrent.TimeoutException
 
 class ReflektCameraImpl(
     private val ctx: Context,
@@ -38,13 +39,13 @@ class ReflektCameraImpl(
 
     private var cameraDevice: CameraDevice? = null
     private var captureSession: CameraCaptureSession? = null
-    private var currentSurfaces: Map<CameraMode, List<Surface>> = emptyMap()
+    private var currentSurfaces: Map<CameraMode, List<Surface?>> = emptyMap()
     private var currentReflekts: List<ReflektSurface> = emptyList()
 
     private var pendingException: CameraException? = null
     private val cameraOpenMutex = Mutex()
 
-    private val cameraDeviceCallbacks = object : CameraDevice.StateCallback() {
+    private val cameraDeviceCallback = object : CameraDevice.StateCallback() {
 
         override fun onOpened(camera: CameraDevice) {
             debug { "#onOpened" }
@@ -85,7 +86,7 @@ class ReflektCameraImpl(
 
         if (ContextCompat.checkSelfPermission(ctx, CAMERA) == PERMISSION_GRANTED) {
             try {
-                cameraManager.openCamera(id, cameraDeviceCallbacks, Handler(handlerThread.looper))
+                cameraManager.openCamera(id, cameraDeviceCallback, Handler(handlerThread.looper))
             } catch (e: Exception) {
                 warn { e.message ?: "" }
                 error { e }
@@ -117,40 +118,40 @@ class ReflektCameraImpl(
         JpegPreference.hardwareRotation = hardwareRotation
         JpegPreference.displayRotation = displayRotation
 
-        val surfaces = reflektSurfaces
-            .map { reflektSurface ->
+        val surfacesByMode = reflektSurfaces.map { reflektSurface ->
 
-                val outputResolutions = when (val format = reflektSurface.format) {
-                    is ReflektFormat.Image -> cameraManager.outputResolutions(
-                        cameraDevice.id, format.format
-                    )
-                    is ReflektFormat.Clazz -> cameraManager.outputResolutions(
-                        cameraDevice.id, format.klass
-                    )
-                }
-
-                val surfaceConfig = SurfaceConfig(
-                    outputResolutions,
-                    aspectRatio,
-                    displayRotation,
-                    hardwareRotation,
-                    cameraManager.directCamera(cameraDevice.id)
+            val outputResolutions = when (val format = reflektSurface.format) {
+                is ReflektFormat.Image -> cameraManager.outputResolutions(
+                    cameraDevice.id, format.format
                 )
-
-                async {
-                    withTimeout(5000) {
-                        reflektSurface to reflektSurface.acquireSurface(surfaceConfig)
-                    }
-                }
+                is ReflektFormat.Clazz -> cameraManager.outputResolutions(
+                    cameraDevice.id, format.klass
+                )
             }
+
+            val surfaceConfig = SurfaceConfig(
+                outputResolutions,
+                aspectRatio,
+                displayRotation,
+                hardwareRotation,
+                cameraManager.directCamera(cameraDevice.id)
+            )
+
+            async {
+                withTimeoutOrNull(500) {
+                    reflektSurface to reflektSurface.acquireSurface(surfaceConfig)
+                } ?: throw TimeoutException("can't get surface from $reflektSurface")
+            }
+        }
             .map { it.await() }
             .flatMap { (reflekt, surface) ->
                 reflekt.supportedModes.map { it to surface }
             }
             .groupBy(keySelector = { it.first }, valueTransform = { it.second })
 
-        captureSession = cameraDevice.createCaptureSession(surfaces.values.flatten().distinct(), handlerThread)
-        currentSurfaces = surfaces
+        val surfaces = surfacesByMode.values.flatten().mapNotNull { it }.distinct()
+        captureSession = cameraDevice.createCaptureSession(surfaces, handlerThread)
+        currentSurfaces = surfacesByMode
         currentReflekts = reflektSurfaces
     }
 
@@ -162,7 +163,7 @@ class ReflektCameraImpl(
         check(cameraDevice != null) { "camera is not opened" }
         check(session != null) { "session is not started" }
 
-        val previewSurfaces = surfaces[PREVIEW]
+        val previewSurfaces = surfaces[PREVIEW]?.mapNotNull { it }
         check(previewSurfaces != null && previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
 
         val request = session.device.createCaptureRequest(TEMPLATE_PREVIEW).run {
@@ -181,8 +182,8 @@ class ReflektCameraImpl(
         pendingException?.let { throw it }
         check(cameraDevice != null) { "camera is not opened" }
         check(session != null) { "session is not started" }
-        val helperSurfaces = surfaces[HELPER]
-        val captureSurfaces = surfaces[CAPTURE]
+        val helperSurfaces = surfaces[HELPER]?.mapNotNull { it }
+        val captureSurfaces = surfaces[CAPTURE]?.mapNotNull { it }
         check(helperSurfaces != null && helperSurfaces.isNotEmpty()) { "preview surfaces is empty" }
         check(captureSurfaces != null && captureSurfaces.isNotEmpty()) { "capture surfaces is empty" }
 
@@ -226,7 +227,7 @@ class ReflektCameraImpl(
         pendingException?.let { throw it }
         check(cameraDevice != null) { "camera is not opened" }
         check(session != null) { "session is not started" }
-        val recordSurfaces = surfaces[RECORD]
+        val recordSurfaces = surfaces[RECORD]?.mapNotNull { it }
         check(recordSurfaces != null && recordSurfaces.isNotEmpty()) { "record surfaces is empty" } // FIXME
 
         val request = session.device.createCaptureRequest(TEMPLATE_RECORD).run {
