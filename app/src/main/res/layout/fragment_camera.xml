@@ -36,10 +36,18 @@
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:layout_marginEnd="48dp"
-
         android:src="@drawable/ic_fiber_manual_record_black_24dp"
         app:layout_constraintBottom_toBottomOf="@id/shootButton"
         app:layout_constraintRight_toLeftOf="@id/shootButton"
         app:layout_constraintTop_toTopOf="@id/shootButton" />
+
+    <TextView
+        android:id="@+id/messageTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:textColor="@color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

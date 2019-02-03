@@ -16,6 +16,7 @@ import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.*
 import tech.khana.reflekt.capture.CaptureSaverJpg
 import tech.khana.reflekt.core.SimpleReflekt
+import tech.khana.reflekt.frames.FrameProcessor
 import tech.khana.reflekt.models.LensDirect
 import tech.khana.reflekt.models.Settings
 import tech.khana.reflekt.models.displayRotationOf
@@ -24,6 +25,7 @@ import tech.khana.reflekt.utils.REFLEKT_TAG
 import tech.khana.reflekt.video.VideoRecorder
 import java.io.File
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 
 class CameraFragment : Fragment(), CoroutineScope {
 
@@ -62,6 +64,18 @@ class CameraFragment : Fragment(), CoroutineScope {
         VideoRecorder(File(context!!.cacheDir, "video"))
     }
 
+    private val frameProcessor by lazy {
+        var lastTime = System.currentTimeMillis()
+        var delay = (System.currentTimeMillis() - lastTime).toFloat()
+        FrameProcessor {
+            delay = (System.currentTimeMillis() - lastTime) * 0.03f + delay * 0.97f
+            launch {
+                messageTextView.text = "frames fps: ${(1000f / delay).roundToInt()}"
+            }
+            lastTime = System.currentTimeMillis()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -95,7 +109,7 @@ class CameraFragment : Fragment(), CoroutineScope {
 
         val rotation = displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
         settings = Settings(
-            surfaces = listOf(preview, captureSaver, videoRecorder),
+            surfaces = listOf(preview, frameProcessor),
             displayRotation = rotation,
             lensDirect = LensDirect.FRONT
         )
@@ -160,14 +174,6 @@ class CameraFragment : Fragment(), CoroutineScope {
 //                }
 //            }
 //        }
-
-        GlobalScope.launch {
-            //            error("error #1")
-        }
-
-        launch {
-            //            error("error #2")
-        }
 
         shootButton.setOnClickListener {
             launch {
