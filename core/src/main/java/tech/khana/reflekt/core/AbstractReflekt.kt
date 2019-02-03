@@ -70,7 +70,7 @@ abstract class AbstractReflekt(
 
     override suspend fun release() = withContext(cameraDispatcher) {
         camera.close()
-        currentSettings.surfaces.forEach { it.release() }
+        currentSettings.surfaces.forEach { it.release() } // FIXME sometimes surface can be not released
         handlerThread.quitSafely()
     }
 }

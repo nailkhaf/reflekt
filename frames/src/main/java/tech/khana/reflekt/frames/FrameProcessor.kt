@@ -14,9 +14,8 @@ import tech.khana.reflekt.utils.REFLEKT_TAG
 private const val MAX_SIDE = 500
 
 class FrameProcessor(
-    private val onFrameReceived: (Image) -> Unit,
     private val handlerThread: HandlerThread = HandlerThread(REFLEKT_TAG).apply { start() },
-    private val maxSide: Int = MAX_SIDE
+    private val onFrameReceived: (Image) -> Unit = {}
 ) : ReflektSurface, ImageReader.OnImageAvailableListener {
 
     override val format = ReflektFormat.Image.Yuv
@@ -29,12 +28,12 @@ class FrameProcessor(
         val resolution = config.resolutions.chooseOptimalResolution(config.aspectRatio)
 
         imageReader?.close()
-        val imageReader = ImageReader.newInstance(resolution.width, resolution.height, format.format, 2).apply {
-            setOnImageAvailableListener(this@FrameProcessor, Handler(handlerThread.looper))
-        }
 
-        this@FrameProcessor.imageReader = imageReader
-        imageReader.surface
+        ImageReader.newInstance(resolution.width, resolution.height, format.format, 2).apply {
+            setOnImageAvailableListener(this@FrameProcessor, Handler(handlerThread.looper))
+        }.also {
+            imageReader = it
+        }.surface
     }
 
     private fun List<Resolution>.chooseOptimalResolution(aspectRatio: AspectRatio): Resolution =

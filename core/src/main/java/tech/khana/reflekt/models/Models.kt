@@ -25,6 +25,7 @@ sealed class ReflektFormat {
     sealed class Image(val format: Int) : ReflektFormat() {
         object Jpeg : Image(ImageFormat.JPEG)
         object Yuv : Image(ImageFormat.YUV_420_888)
+        object RAW : Image(ImageFormat.RAW_SENSOR)
     }
 
     sealed class Clazz(val klass: Class<out Any>) : ReflektFormat() {
