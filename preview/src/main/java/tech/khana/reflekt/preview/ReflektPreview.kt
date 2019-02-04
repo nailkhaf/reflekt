@@ -73,6 +73,8 @@ class ReflektPreview @JvmOverloads constructor(
         )
 
         debug { "#acquireSurface acquired" }
+
+        //FIXME Lint warns that surface should be released
         Surface(surfaceTexture)
     }
 

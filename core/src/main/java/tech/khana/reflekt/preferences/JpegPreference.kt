@@ -16,8 +16,8 @@ object JpegPreference : CameraPreference {
 
     var lensDirect: LensDirect = LensDirect.FRONT
 
-    override fun CaptureRequest.Builder.apply(cameraMode: CameraMode) = when {
-        cameraMode == CameraMode.CAPTURE -> {
+    override fun CaptureRequest.Builder.apply(cameraMode: CameraMode) = when (cameraMode) {
+        CameraMode.CAPTURE -> {
             val jpegOrientation = getJpegOrientation(lensDirect, hardwareRotation, displayRotation)
             set(CaptureRequest.JPEG_ORIENTATION, jpegOrientation.value)
             set(CaptureRequest.JPEG_QUALITY, 100)
