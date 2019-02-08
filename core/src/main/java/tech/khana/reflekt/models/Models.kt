@@ -25,12 +25,19 @@ sealed class ReflektFormat {
     sealed class Image(val format: Int) : ReflektFormat() {
         object Jpeg : Image(ImageFormat.JPEG)
         object Yuv : Image(ImageFormat.YUV_420_888)
-        object RAW : Image(ImageFormat.RAW_SENSOR)
     }
 
-    sealed class Clazz(val klass: Class<out Any>) : ReflektFormat() {
-        object Texture : Clazz(SurfaceTexture::class.java)
-        object ImageReader : Clazz(android.media.ImageReader::class.java)
-        object MediaRecorder : Clazz(android.media.MediaRecorder::class.java)
+    sealed class Priv(val klass: Class<out Any>) : ReflektFormat() {
+        object Texture : Priv(SurfaceTexture::class.java)
+        object ImageReader : Priv(android.media.ImageReader::class.java)
+        object MediaRecorder : Priv(android.media.MediaRecorder::class.java)
     }
+
+    object None : ReflektFormat()
+}
+
+enum class OutputType {
+    PREVIEW,
+    MAXIMUM,
+    RECORD
 }

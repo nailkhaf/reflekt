@@ -3,6 +3,9 @@ package tech.khana.reflekt.core
 import android.hardware.camera2.CaptureRequest
 import android.view.Surface
 import tech.khana.reflekt.models.*
+import tech.khana.reflekt.models.ReflektFormat.Image.Jpeg
+import tech.khana.reflekt.models.ReflektFormat.Image.Yuv
+import tech.khana.reflekt.models.ReflektFormat.Priv
 
 interface Reflekt {
 
@@ -63,4 +66,35 @@ interface ReflektSurface {
 
     suspend fun release() {
     }
+}
+
+interface JpegSurface : ReflektSurface {
+
+    override val format: Jpeg
+}
+
+interface YuvSurface : ReflektSurface {
+
+    override val format: Yuv
+}
+
+interface PrivSurface : ReflektSurface {
+
+    override val format: Priv
+}
+
+interface WatcherSurface : ReflektSurface {
+
+    override val format: ReflektFormat
+        get() = ReflektFormat.None
+
+    override val supportedModes: Set<CameraMode>
+        get() = CameraMode.values().toSet()
+
+    override suspend fun acquireSurface(config: SurfaceConfig): Surface? = null
+}
+
+interface SurfaceOutputConfigurator {
+
+    fun defineOutputType(surface: ReflektSurface): OutputType
 }

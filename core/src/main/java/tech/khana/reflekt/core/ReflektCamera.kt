@@ -124,7 +124,7 @@ class ReflektCameraImpl(
                 is ReflektFormat.Image -> cameraManager.outputResolutions(
                     cameraDevice.id, format.format
                 )
-                is ReflektFormat.Clazz -> cameraManager.outputResolutions(
+                is ReflektFormat.Priv -> cameraManager.outputResolutions(
                     cameraDevice.id, format.klass
                 )
             }
@@ -182,9 +182,9 @@ class ReflektCameraImpl(
         pendingException?.let { throw it }
         check(cameraDevice != null) { "camera is not opened" }
         check(session != null) { "session is not started" }
-        val helperSurfaces = surfaces[HELPER]?.mapNotNull { it }
+        val previewSurfaces = surfaces[PREVIEW]?.mapNotNull { it }
         val captureSurfaces = surfaces[CAPTURE]?.mapNotNull { it }
-        check(helperSurfaces != null && helperSurfaces.isNotEmpty()) { "preview surfaces is empty" }
+        check(previewSurfaces != null && previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
         check(captureSurfaces != null && captureSurfaces.isNotEmpty()) { "capture surfaces is empty" }
 
         currentReflekts.filter { CAPTURE in it.supportedModes }.forEach { it.onStart(CAPTURE) }
@@ -192,14 +192,14 @@ class ReflektCameraImpl(
         if (cameraManager.supportFocus(session.device.id)) {
             var focusState = -1
             while (focusState != CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED) {
-                focusState = session.lockFocus(handlerThread, helperSurfaces)
+                focusState = session.lockFocus(handlerThread, previewSurfaces)
             }
         }
 
         if (cameraManager.supportExposure(session.device.id)) {
             var exposureState = -1
             while (exposureState != CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                exposureState = session.preCaptureExposure(handlerThread, helperSurfaces)
+                exposureState = session.preCaptureExposure(handlerThread, previewSurfaces)
             }
         }
 
@@ -214,7 +214,7 @@ class ReflektCameraImpl(
         currentReflekts.filter { CAPTURE in it.supportedModes }.forEach { it.onStop(CAPTURE) }
 
         if (cameraManager.supportFocus(session.device.id)) {
-            session.unLockFocus(handlerThread, helperSurfaces)
+            session.unLockFocus(handlerThread, previewSurfaces)
         }
 
         Unit

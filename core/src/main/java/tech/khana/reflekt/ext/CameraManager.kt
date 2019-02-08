@@ -6,6 +6,8 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.params.StreamConfigurationMap
+import android.util.Range
+import android.util.Size
 import android.view.Surface
 import tech.khana.reflekt.models.LensDirect
 import tech.khana.reflekt.models.Resolution
@@ -67,6 +69,51 @@ fun CameraManager.supportedLevel(cameraId: String): SupportLevel {
     return SupportLevel.values().first {
         it.value == level
     }
+}
+
+fun CameraManager.maxNonStallingStreams(cameraId: String): Int {
+    val characteristics = getCameraCharacteristics(cameraId)
+    return characteristics.get(CameraCharacteristics.REQUEST_MAX_NUM_OUTPUT_PROC) ?: 0
+}
+
+fun CameraManager.outputFpsRanges(cameraId: String): Array<Range<Int>> {
+    val characteristics = getCameraCharacteristics(cameraId)
+    return characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES) ?: emptyArray()
+}
+
+fun CameraManager.maxStallingStreams(cameraId: String): Int {
+    val characteristics = getCameraCharacteristics(cameraId)
+    return characteristics.get(CameraCharacteristics.REQUEST_MAX_NUM_OUTPUT_PROC_STALLING) ?: 0
+}
+
+fun CameraManager.outputStallDuration(cameraId: String, format: Int, size: Size): Long {
+    val characteristics = getCameraCharacteristics(cameraId)
+    val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!
+    return map.getOutputStallDuration(format, size)
+}
+
+fun CameraManager.outputStallDuration(cameraId: String, klass: Class<out Any>, size: Size): Long {
+    val characteristics = getCameraCharacteristics(cameraId)
+    val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!
+    return map.getOutputStallDuration(klass, size)
+}
+
+fun CameraManager.outputFrameDuration(cameraId: String, format: Int, size: Size): Long {
+    val characteristics = getCameraCharacteristics(cameraId)
+    val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!
+    return map.getOutputMinFrameDuration(format, size)
+}
+
+fun CameraManager.outputFrameDuration(cameraId: String, klass: Class<out Any>, size: Size): Long {
+    val characteristics = getCameraCharacteristics(cameraId)
+    val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!
+    return map.getOutputMinFrameDuration(klass, size)
+}
+
+fun CameraManager.outputFormats(cameraId: String): IntArray {
+    val characteristics = getCameraCharacteristics(cameraId)
+    val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!
+    return map.outputFormats
 }
 
 fun CameraManager.availableFlash(cameraId: String): Boolean {

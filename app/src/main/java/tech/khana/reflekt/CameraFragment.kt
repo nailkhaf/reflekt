@@ -68,7 +68,7 @@ class CameraFragment : Fragment(), CoroutineScope {
         var lastTime = System.currentTimeMillis()
         var delay = (System.currentTimeMillis() - lastTime).toFloat()
         FrameProcessor {
-            delay = (System.currentTimeMillis() - lastTime) * 0.03f + delay * 0.97f
+            delay = (System.currentTimeMillis() - lastTime) * 0.05f + delay * 0.95f
             launch {
                 messageTextView.text = "frames fps: ${(1000f / delay).roundToInt()}"
             }

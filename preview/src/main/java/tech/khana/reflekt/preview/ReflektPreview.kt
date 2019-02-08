@@ -33,7 +33,7 @@ class ReflektPreview @JvmOverloads constructor(
     private var previewRotation = Rotation._0
     private var previewAspectRatio: AspectRatio = AR_16X9
 
-    override val format: ReflektFormat = ReflektFormat.Clazz.Texture
+    override val format: ReflektFormat = ReflektFormat.Priv.Texture
 
     private val layoutMutex = Mutex()
     private val textureMatrix = Matrix()

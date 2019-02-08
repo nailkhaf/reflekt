@@ -20,7 +20,7 @@ class VideoRecorder(
     private val handlerThread: HandlerThread = HandlerThread(REFLEKT_TAG).apply { start() }
 ) : ReflektSurface {
 
-    override val format: ReflektFormat = ReflektFormat.Clazz.MediaRecorder
+    override val format: ReflektFormat = ReflektFormat.Priv.MediaRecorder
 
     private val dispatcher = Handler(handlerThread.looper).asCoroutineDispatcher()
     override val supportedModes = setOf(CameraMode.RECORD)
