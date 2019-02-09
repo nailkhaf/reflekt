@@ -21,7 +21,12 @@ class SimpleReflekt(
 
     suspend fun start() = withContext(cameraDispatcher) {
         camera.open(currentSettings.lensDirect)
-        camera.startSession(currentSettings.surfaces, currentSettings.displayRotation, currentSettings.aspectRatio)
+        camera.startSession(
+            currentSettings.surfaces,
+            currentSettings.displayRotation,
+            currentSettings.displayResolution,
+            currentSettings.aspectRatio
+        )
         camera.startPreview()
     }
 

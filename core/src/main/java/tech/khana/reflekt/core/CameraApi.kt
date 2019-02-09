@@ -27,6 +27,7 @@ interface ReflektCamera {
     suspend fun startSession(
         reflektSurfaces: List<ReflektSurface>,
         displayRotation: Rotation,
+        displayResolution: Resolution,
         aspectRatio: AspectRatio
     )
 

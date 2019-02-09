@@ -22,9 +22,6 @@ import tech.khana.reflekt.preview.Side.WIDTH
 import tech.khana.reflekt.utils.Logger
 import tech.khana.reflekt.utils.debug
 
-const val MAX_PREVIEW_WIDTH = 1280
-const val MAX_PREVIEW_HEIGHT = 720
-
 class ReflektPreview @JvmOverloads constructor(
     ctx: Context,
     attrs: AttributeSet? = null

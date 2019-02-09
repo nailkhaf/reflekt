@@ -15,67 +15,66 @@ class DefaultSurfaceOutputConfigurator(
     surfaces: List<ReflektSurface>
 ) : SurfaceOutputConfigurator {
 
-    private val legacyMatch: Map<Array<out KClass<out ReflektFormat>?>, Array<out OutputType?>> = mapOf(
+    private val legacyMatch: Map<List<KClass<out ReflektFormat>?>, Array<out OutputType?>> = mapOf(
 
-        arrayOf(Priv::class, null, null) to arrayOf(MAXIMUM, null, null),
-        arrayOf(Image.Jpeg::class, null, null) to arrayOf(MAXIMUM, null, null),
-        arrayOf(Image.Yuv::class, null, null) to arrayOf(MAXIMUM, null, null),
+        listOf(Priv::class, null, null) to arrayOf(MAXIMUM, null, null),
+        listOf(Image.Jpeg::class, null, null) to arrayOf(MAXIMUM, null, null),
+        listOf(Image.Yuv::class, null, null) to arrayOf(MAXIMUM, null, null),
 
-        arrayOf(Priv::class, Image.Jpeg::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
-        arrayOf(Image.Yuv::class, Image.Jpeg::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
-        arrayOf(Priv::class, Priv::class, null) to arrayOf(PREVIEW, PREVIEW, null),
-        arrayOf(Priv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, PREVIEW, null),
+        listOf(Priv::class, Image.Jpeg::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
+        listOf(Image.Yuv::class, Image.Jpeg::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
+        listOf(Priv::class, Priv::class, null) to arrayOf(PREVIEW, PREVIEW, null),
+        listOf(Priv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, PREVIEW, null),
 
-        arrayOf(Priv::class, Image.Yuv::class, Image.Jpeg::class) to arrayOf(PREVIEW, PREVIEW, MAXIMUM)
+        listOf(Priv::class, Image.Yuv::class, Image.Jpeg::class) to arrayOf(PREVIEW, PREVIEW, MAXIMUM)
     )
 
-    private val limitedMatch: Map<Array<out KClass<out ReflektFormat>?>, Array<out OutputType?>> = mapOf(
+    private val limitedMatch: Map<List<KClass<out ReflektFormat>?>, Array<out OutputType?>> = mapOf(
 
-        arrayOf(Priv::class, Priv::class, null) to arrayOf(PREVIEW, RECORD, null),
-        arrayOf(Priv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, RECORD, null),
-        arrayOf(Image.Yuv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, RECORD, null),
+        listOf(Priv::class, Priv::class, null) to arrayOf(PREVIEW, RECORD, null),
+        listOf(Priv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, RECORD, null),
+        listOf(Image.Yuv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, RECORD, null),
 
-        arrayOf(Priv::class, Priv::class, Image.Jpeg::class) to arrayOf(PREVIEW, RECORD, RECORD),
-        arrayOf(Priv::class, Image.Yuv::class, Image.Jpeg::class) to arrayOf(PREVIEW, RECORD, RECORD),
-        arrayOf(Image.Yuv::class, Image.Yuv::class, Image.Jpeg::class) to arrayOf(PREVIEW, PREVIEW, MAXIMUM)
+        listOf(Priv::class, Priv::class, Image.Jpeg::class) to arrayOf(PREVIEW, RECORD, RECORD),
+        listOf(Priv::class, Image.Yuv::class, Image.Jpeg::class) to arrayOf(PREVIEW, RECORD, RECORD),
+        listOf(Image.Yuv::class, Image.Yuv::class, Image.Jpeg::class) to arrayOf(PREVIEW, PREVIEW, MAXIMUM)
     )
 
-    private val fullMatch: Map<Array<out KClass<out ReflektFormat>?>, Array<out OutputType?>> = mapOf(
+    private val fullMatch: Map<List<KClass<out ReflektFormat>?>, Array<out OutputType?>> = mapOf(
 
-        arrayOf(Priv::class, Priv::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
-        arrayOf(Priv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
-        arrayOf(Image.Yuv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
+        listOf(Priv::class, Priv::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
+        listOf(Priv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
+        listOf(Image.Yuv::class, Image.Yuv::class, null) to arrayOf(PREVIEW, MAXIMUM, null),
 
-        arrayOf(Priv::class, Priv::class, Image.Jpeg::class) to arrayOf(PREVIEW, PREVIEW, MAXIMUM)
+        listOf(Priv::class, Priv::class, Image.Jpeg::class) to arrayOf(PREVIEW, PREVIEW, MAXIMUM)
     )
 
     private val map: Map<ReflektSurface, OutputType>
 
     init {
         val notNoneFormatSurfaces = surfaces.filter { it.format !is ReflektFormat.None }
-        check(notNoneFormatSurfaces.size in 1 until MAX_SURFACE_COUNT) {
+        check(notNoneFormatSurfaces.size in 1..MAX_SURFACE_COUNT) {
             "max count of surfaces is $MAX_SURFACE_COUNT"
         }
 
-        val tableKey = (0..MAX_SURFACE_COUNT)
+        val tableKey = (0 until MAX_SURFACE_COUNT)
             .map { notNoneFormatSurfaces.getOrNull(it) }
             .map { it?.format }
-            .map { if (it != null) it::class else null }
-            .toTypedArray()
+            .map { it?.run { if (it is Priv) Priv::class else it::class } }
 
         var value: Array<out OutputType?>? = null
 
         if (level.ordinal >= SupportLevel.LEGACY.ordinal) {
-            value = legacyMatch[tableKey]
+            value = legacyMatch[tableKey] ?: value
         }
         if (level.ordinal >= SupportLevel.LIMIT.ordinal) {
-            value = limitedMatch[tableKey]
+            value = limitedMatch[tableKey] ?: value
         }
         if (level.ordinal >= SupportLevel.FULL.ordinal) {
-            value = fullMatch[tableKey]
+            value = fullMatch[tableKey] ?: value
         }
 
-        checkNotNull(value) { "not found surface matching in table" }
+        checkNotNull(value) { "unknown surface configuration" }
 
         map = notNoneFormatSurfaces.mapIndexed { index, reflektSurface ->
             val outputType = value[index]

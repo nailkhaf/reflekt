@@ -36,7 +36,12 @@ abstract class AbstractReflekt(
         if (currentSettings.aspectRatio == aspectRatio) return@withContext
 
         camera.stopSession()
-        camera.startSession(currentSettings.surfaces, currentSettings.displayRotation, aspectRatio)
+        camera.startSession(
+            currentSettings.surfaces,
+            currentSettings.displayRotation,
+            currentSettings.displayResolution,
+            aspectRatio
+        )
         currentSettings = currentSettings.copy(aspectRatio = aspectRatio)
     }
 
@@ -45,7 +50,12 @@ abstract class AbstractReflekt(
 
         camera.close()
         camera.open(lensDirect)
-        camera.startSession(currentSettings.surfaces, currentSettings.displayRotation, currentSettings.aspectRatio)
+        camera.startSession(
+            currentSettings.surfaces,
+            currentSettings.displayRotation,
+            currentSettings.displayResolution,
+            currentSettings.aspectRatio
+        )
         camera.startPreview()
         currentSettings = currentSettings.copy(lensDirect = lensDirect)
     }

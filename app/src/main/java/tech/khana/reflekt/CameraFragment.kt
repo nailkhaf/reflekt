@@ -18,6 +18,7 @@ import tech.khana.reflekt.capture.CaptureSaverJpg
 import tech.khana.reflekt.core.SimpleReflekt
 import tech.khana.reflekt.frames.FrameProcessor
 import tech.khana.reflekt.models.LensDirect
+import tech.khana.reflekt.models.Resolution
 import tech.khana.reflekt.models.Settings
 import tech.khana.reflekt.models.displayRotationOf
 import tech.khana.reflekt.preview.ReflektPreview
@@ -109,9 +110,10 @@ class CameraFragment : Fragment(), CoroutineScope {
 
         val rotation = displayRotationOf(requireActivity().windowManager.defaultDisplay.rotation)
         settings = Settings(
-            surfaces = listOf(preview, frameProcessor),
+            surfaces = listOf(preview, frameProcessor, captureSaver),
             displayRotation = rotation,
-            lensDirect = LensDirect.FRONT
+            lensDirect = LensDirect.FRONT,
+            displayResolution = Resolution(1920, 1080)
         )
         camera = SimpleReflekt(context!!, settings)
 

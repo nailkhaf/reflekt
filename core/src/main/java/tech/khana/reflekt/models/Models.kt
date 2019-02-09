@@ -8,6 +8,7 @@ import tech.khana.reflekt.models.AspectRatio.AR_4X3
 data class Settings(
     val surfaces: List<ReflektSurface> = emptyList(),
     val displayRotation: Rotation = Rotation._0,
+    val displayResolution: Resolution = Resolution(1280, 720),
     val aspectRatio: AspectRatio = AR_4X3,
     val lensDirect: LensDirect = LensDirect.FRONT
 )
@@ -35,6 +36,9 @@ sealed class ReflektFormat {
 
     object None : ReflektFormat()
 }
+
+const val MAX_PREVIEW_WIDTH = 1920
+const val MAX_PREVIEW_HEIGHT = 1080
 
 enum class OutputType {
     PREVIEW,

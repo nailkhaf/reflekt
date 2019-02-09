@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraDevice.*
 import android.hardware.camera2.CaptureResult
+import android.media.CamcorderProfile
 import android.os.Handler
 import android.os.HandlerThread
 import android.support.v4.content.ContextCompat
@@ -104,6 +105,7 @@ class ReflektCameraImpl(
     override suspend fun startSession(
         reflektSurfaces: List<ReflektSurface>,
         displayRotation: Rotation,
+        displayResolution: Resolution,
         aspectRatio: AspectRatio
     ) = withContext(cameraDispatcher) {
         debug { "#startSession" }
@@ -118,6 +120,10 @@ class ReflektCameraImpl(
         JpegPreference.hardwareRotation = hardwareRotation
         JpegPreference.displayRotation = displayRotation
 
+        val supportedLevel = cameraManager.supportedLevel(cameraDevice.id)
+        debug { "#supported level: ${supportedLevel.description}" }
+        val outputConfigurator = DefaultSurfaceOutputConfigurator(supportedLevel, reflektSurfaces)
+
         val surfacesByMode = reflektSurfaces.map { reflektSurface ->
 
             val outputResolutions = when (val format = reflektSurface.format) {
@@ -127,10 +133,27 @@ class ReflektCameraImpl(
                 is ReflektFormat.Priv -> cameraManager.outputResolutions(
                     cameraDevice.id, format.klass
                 )
+                is ReflektFormat.None -> return@map null
+            }
+
+            val maxRecordResolution = CamcorderProfile.get(cameraDevice.id.toInt(), CamcorderProfile.QUALITY_HIGH).let {
+                Resolution(it.videoFrameWidth, it.videoFrameHeight)
+            }
+
+            val filteredOutputResolutionsByOutputType = when (outputConfigurator.defineOutputType(reflektSurface)) {
+                OutputType.MAXIMUM -> outputResolutions
+                OutputType.RECORD -> outputResolutions
+                    .filter { it.width <= maxRecordResolution.width }
+                    .filter { it.height <= maxRecordResolution.height }
+                OutputType.PREVIEW -> outputResolutions
+                    .filter { it.width <= displayResolution.width }
+                    .filter { it.height <= displayResolution.height }
+                    .filter { it.width <= MAX_PREVIEW_WIDTH }
+                    .filter { it.height <= MAX_PREVIEW_HEIGHT }
             }
 
             val surfaceConfig = SurfaceConfig(
-                outputResolutions,
+                filteredOutputResolutionsByOutputType,
                 aspectRatio,
                 displayRotation,
                 hardwareRotation,
@@ -143,6 +166,7 @@ class ReflektCameraImpl(
                 } ?: throw TimeoutException("can't get surface from $reflektSurface")
             }
         }
+            .mapNotNull { it }
             .map { it.await() }
             .flatMap { (reflekt, surface) ->
                 reflekt.supportedModes.map { it to surface }
