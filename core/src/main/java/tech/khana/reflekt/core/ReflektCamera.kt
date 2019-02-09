@@ -142,14 +142,16 @@ class ReflektCameraImpl(
 
             val filteredOutputResolutionsByOutputType = when (outputConfigurator.defineOutputType(reflektSurface)) {
                 OutputType.MAXIMUM -> outputResolutions
-                OutputType.RECORD -> outputResolutions
+                OutputType.RECORD -> outputResolutions.asSequence()
                     .filter { it.width <= maxRecordResolution.width }
                     .filter { it.height <= maxRecordResolution.height }
-                OutputType.PREVIEW -> outputResolutions
+                    .toList()
+                OutputType.PREVIEW -> outputResolutions.asSequence()
                     .filter { it.width <= displayResolution.width }
                     .filter { it.height <= displayResolution.height }
                     .filter { it.width <= MAX_PREVIEW_WIDTH }
                     .filter { it.height <= MAX_PREVIEW_HEIGHT }
+                    .toList()
             }
 
             val surfaceConfig = SurfaceConfig(

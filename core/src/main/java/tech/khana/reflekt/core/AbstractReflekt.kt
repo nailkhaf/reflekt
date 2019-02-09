@@ -42,6 +42,7 @@ abstract class AbstractReflekt(
             currentSettings.displayResolution,
             aspectRatio
         )
+        camera.startPreview()
         currentSettings = currentSettings.copy(aspectRatio = aspectRatio)
     }
 

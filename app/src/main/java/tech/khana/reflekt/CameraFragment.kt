@@ -17,10 +17,7 @@ import kotlinx.coroutines.*
 import tech.khana.reflekt.capture.CaptureSaverJpg
 import tech.khana.reflekt.core.SimpleReflekt
 import tech.khana.reflekt.frames.FrameProcessor
-import tech.khana.reflekt.models.LensDirect
-import tech.khana.reflekt.models.Resolution
-import tech.khana.reflekt.models.Settings
-import tech.khana.reflekt.models.displayRotationOf
+import tech.khana.reflekt.models.*
 import tech.khana.reflekt.preview.ReflektPreview
 import tech.khana.reflekt.utils.REFLEKT_TAG
 import tech.khana.reflekt.video.VideoRecorder
@@ -113,24 +110,25 @@ class CameraFragment : Fragment(), CoroutineScope {
             surfaces = listOf(preview, frameProcessor, captureSaver),
             displayRotation = rotation,
             lensDirect = LensDirect.FRONT,
-            displayResolution = Resolution(1920, 1080)
+            displayResolution = Resolution(1920, 1080),
+            aspectRatio = AspectRatio.AR_16X9
         )
         camera = SimpleReflekt(context!!, settings)
 
-//        aspectRatioButton.setOnClickListener {
-//            launch {
-//                val aspectRatios = camera.availablePreviewAspectRatios()
-//                AlertDialog.Builder(requireActivity()).apply {
-//                    setTitle(R.string.pick_aspect_ratio)
-//                    setItems(aspectRatios.map { it.name }.toTypedArray()) { _, id ->
-//                        this@CameraFragment.launch {
-//                            camera.previewAspectRatio(aspectRatios[id])
-//                        }
-//                    }
-//                    show()
-//                }
-//            }
-//        }
+        aspectRatioButton.setOnClickListener {
+            launch {
+                val aspectRatios = AspectRatio.values()
+                AlertDialog.Builder(requireActivity()).apply {
+                    setTitle(R.string.pick_aspect_ratio)
+                    setItems(aspectRatios.map { it.name }.toTypedArray()) { _, id ->
+                        this@CameraFragment.launch {
+                            camera.previewAspectRatio(aspectRatios[id])
+                        }
+                    }
+                    show()
+                }
+            }
+        }
 
         switchButton.setOnClickListener {
             launch {

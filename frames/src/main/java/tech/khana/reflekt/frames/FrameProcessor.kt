@@ -11,8 +11,6 @@ import tech.khana.reflekt.core.ReflektSurface
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.utils.REFLEKT_TAG
 
-private const val MAX_SIDE = 500
-
 class FrameProcessor(
     private val handlerThread: HandlerThread = HandlerThread(REFLEKT_TAG).apply { start() },
     private val onFrameReceived: (Image) -> Unit = {}
@@ -39,8 +37,9 @@ class FrameProcessor(
     private fun List<Resolution>.chooseOptimalResolution(aspectRatio: AspectRatio): Resolution =
         asSequence()
             .filter { it.ratio == aspectRatio.value }
-            .filter { it.width <= MAX_SIDE && it.height <= MAX_SIDE }
-            .maxBy { it.area } ?: throw IllegalStateException()
+//            .filter { it.width <= MAX_SIDE && it.height <= MAX_SIDE }
+            .sortedBy { it.area }
+            .last()
 
     override fun onImageAvailable(reader: ImageReader) {
         reader.acquireNextImage()?.use {
