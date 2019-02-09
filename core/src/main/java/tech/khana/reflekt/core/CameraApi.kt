@@ -33,6 +33,12 @@ interface ReflektCamera {
 
     suspend fun startPreview()
 
+    suspend fun trigger3A()
+
+    suspend fun lock3A()
+
+    suspend fun unlock3A()
+
     suspend fun capture()
 
     suspend fun startRecord()

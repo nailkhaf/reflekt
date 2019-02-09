@@ -2,24 +2,22 @@ package tech.khana.reflekt.core
 
 import android.Manifest.permission.CAMERA
 import android.content.Context
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.*
 import android.hardware.camera2.CameraDevice.*
-import android.hardware.camera2.CaptureResult
+import android.hardware.camera2.CaptureResult.*
 import android.media.CamcorderProfile
 import android.os.Handler
 import android.os.HandlerThread
 import android.support.v4.content.ContextCompat
 import android.support.v4.content.PermissionChecker.PERMISSION_GRANTED
 import android.view.Surface
+import kotlinx.coroutines.*
 import kotlinx.coroutines.android.asCoroutineDispatcher
-import kotlinx.coroutines.async
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import tech.khana.reflekt.ext.*
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.models.CameraMode.*
+import tech.khana.reflekt.preferences.DefaultPreference
 import tech.khana.reflekt.preferences.JpegPreference
 import tech.khana.reflekt.preferences.ZoomPreference
 import tech.khana.reflekt.utils.Logger
@@ -31,7 +29,7 @@ import java.util.concurrent.TimeoutException
 class ReflektCameraImpl(
     private val ctx: Context,
     private val handlerThread: HandlerThread,
-    private val cameraPreferences: List<CameraPreference> = listOf(JpegPreference)
+    private val cameraPreferences: List<CameraPreference> = listOf(DefaultPreference, JpegPreference)
 ) : ReflektCamera, Logger by Logger.defaultLogger {
 
     private val cameraManager = ctx.cameraManager
@@ -45,6 +43,28 @@ class ReflektCameraImpl(
 
     private var pendingException: CameraException? = null
     private val cameraOpenMutex = Mutex()
+
+    private val repeatingState = PreviewState()
+
+    private val repeatingCallback = object : CameraCaptureSession.CaptureCallback() {
+
+        override fun onCaptureCompleted(
+            session: CameraCaptureSession,
+            request: CaptureRequest,
+            result: TotalCaptureResult
+        ) {
+            repeatingState.focused = result.get(CONTROL_AF_STATE)?.let { it == CONTROL_AF_STATE_PASSIVE_FOCUSED }
+                ?: repeatingState.focused
+            repeatingState.exposured = result.get(CONTROL_AE_STATE)?.let { it == CONTROL_AE_STATE_CONVERGED }
+                ?: repeatingState.exposured
+            repeatingState.balanced = result.get(CONTROL_AWB_STATE)?.let { it == CONTROL_AWB_STATE_CONVERGED }
+                ?: repeatingState.balanced
+        }
+
+        override fun onCaptureFailed(session: CameraCaptureSession, request: CaptureRequest, failure: CaptureFailure) {
+            repeatingState.reset()
+        }
+    }
 
     private val cameraDeviceCallback = object : CameraDevice.StateCallback() {
 
@@ -198,11 +218,12 @@ class ReflektCameraImpl(
             build()
         }
 
-        session.setRepeatingRequest(request)
+        session.setRepeatingRequest(request, handlerThread, repeatingCallback)
         currentReflekts.filter { PREVIEW in it.supportedModes }.forEach { it.onStart(PREVIEW) }
     }
 
     override suspend fun capture() = withContext(cameraDispatcher) {
+        debug { "#capture" }
         val session = captureSession
         val surfaces = currentSurfaces
         pendingException?.let { throw it }
@@ -213,37 +234,82 @@ class ReflektCameraImpl(
         check(previewSurfaces != null && previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
         check(captureSurfaces != null && captureSurfaces.isNotEmpty()) { "capture surfaces is empty" }
 
-        currentReflekts.filter { CAPTURE in it.supportedModes }.forEach { it.onStart(CAPTURE) }
-
-        if (cameraManager.supportFocus(session.device.id)) {
-            var focusState = -1
-            while (focusState != CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED) {
-                focusState = session.lockFocus(handlerThread, previewSurfaces)
-            }
-        }
-
-        if (cameraManager.supportExposure(session.device.id)) {
-            var exposureState = -1
-            while (exposureState != CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                exposureState = session.preCaptureExposure(handlerThread, previewSurfaces)
-            }
-        }
-
         val request = session.device.createCaptureRequest(TEMPLATE_STILL_CAPTURE).run {
             addAllSurfaces(captureSurfaces)
             cameraPreferences.forEach { with(it) { apply(CAPTURE) } }
             build()
         }
 
+        currentReflekts.filter { CAPTURE in it.supportedModes }.forEach { it.onStart(CAPTURE) }
+
         session.capture(request, handlerThread)
 
         currentReflekts.filter { CAPTURE in it.supportedModes }.forEach { it.onStop(CAPTURE) }
+    }
 
-        if (cameraManager.supportFocus(session.device.id)) {
-            session.unLockFocus(handlerThread, previewSurfaces)
-        }
+    override suspend fun trigger3A() = withContext(cameraDispatcher) {
+        debug { "#trigger3A" }
+        val session = captureSession
+        val surfaces = currentSurfaces
+        pendingException?.let { throw it }
+        check(cameraDevice != null) { "camera is not opened" }
+        check(session != null) { "session is not started" }
+        val previewSurfaces = surfaces[PREVIEW]?.mapNotNull { it }
+        check(previewSurfaces != null && previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
 
-        Unit
+        var focusComplete = cameraManager.supportFocus(session.device.id).not() || repeatingState.focused
+        var exposureComplete = cameraManager.supportExposure(session.device.id).not() || repeatingState.exposured
+        var awbStateComplete = cameraManager.supportAwb(session.device.id).not() || repeatingState.balanced
+
+        trigger@ do {
+            val channel = session.trigger3A(this, handlerThread, previewSurfaces)
+            if (focusComplete && exposureComplete && awbStateComplete) break@trigger
+            for ((key, result) in channel) {
+                when (key) {
+                    CONTROL_AF_STATE -> {
+                        if (result != CONTROL_AF_STATE_INACTIVE)
+                            focusComplete = result == CONTROL_AF_STATE_FOCUSED_LOCKED
+                    }
+                    CONTROL_AE_STATE -> {
+                        if (result != CONTROL_AE_STATE_INACTIVE)
+                            exposureComplete = result == CONTROL_AE_STATE_CONVERGED
+                    }
+                    CONTROL_AWB_STATE -> {
+                        if (result != CONTROL_AWB_STATE_INACTIVE)
+                            awbStateComplete = result == CONTROL_AWB_STATE_CONVERGED
+                    }
+                    else -> error("unknown key")
+                }
+
+                if (focusComplete && exposureComplete && awbStateComplete) break@trigger
+            }
+        } while (focusComplete.not() || exposureComplete.not() || awbStateComplete.not())
+    }
+
+    override suspend fun lock3A() = withContext(cameraDispatcher) {
+        debug { "#lock3A" }
+        val session = captureSession
+        val surfaces = currentSurfaces
+        pendingException?.let { throw it }
+        check(cameraDevice != null) { "camera is not opened" }
+        check(session != null) { "session is not started" }
+        val previewSurfaces = surfaces[PREVIEW]?.mapNotNull { it }
+        check(previewSurfaces != null && previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
+
+        session.lock3A(previewSurfaces)
+    }
+
+    override suspend fun unlock3A() = withContext(cameraDispatcher) {
+        debug { "#unlock3A" }
+        val session = captureSession
+        val surfaces = currentSurfaces
+        pendingException?.let { throw it }
+        check(cameraDevice != null) { "camera is not opened" }
+        check(session != null) { "session is not started" }
+        val previewSurfaces = surfaces[PREVIEW]?.mapNotNull { it }
+        check(previewSurfaces != null && previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
+
+        session.unlock3A(previewSurfaces)
     }
 
     override suspend fun startRecord() = withContext(cameraDispatcher) {
@@ -271,6 +337,7 @@ class ReflektCameraImpl(
 
     override suspend fun stopRecord() = withContext(cameraDispatcher) {
         debug { "#stopRecord" }
+        repeatingState.reset()
         captureSession?.abortCaptures()
         captureSession?.stopRepeating()
         currentReflekts.filter { RECORD in it.supportedModes }.forEach { it.onStop(RECORD) }
@@ -279,6 +346,7 @@ class ReflektCameraImpl(
 
     override suspend fun stopPreview() = withContext(cameraDispatcher) {
         debug { "#stopPreview" }
+        repeatingState.reset()
         captureSession?.abortCaptures()
         captureSession?.stopRepeating()
         currentReflekts.filter { PREVIEW in it.supportedModes }.forEach { it.onStop(PREVIEW) }
@@ -299,5 +367,17 @@ class ReflektCameraImpl(
         cameraDevice?.close()
         cameraDevice = null
         Unit
+    }
+}
+
+data class PreviewState(
+    var focused: Boolean = false,
+    var exposured: Boolean = false,
+    var balanced: Boolean = false
+) {
+    fun reset() {
+        focused = false
+        exposured = false
+        balanced = false
     }
 }

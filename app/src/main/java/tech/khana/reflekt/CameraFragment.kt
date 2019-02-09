@@ -110,8 +110,8 @@ class CameraFragment : Fragment(), CoroutineScope {
             surfaces = listOf(preview, frameProcessor, captureSaver),
             displayRotation = rotation,
             lensDirect = LensDirect.FRONT,
-            displayResolution = Resolution(1920, 1080),
-            aspectRatio = AspectRatio.AR_16X9
+            displayResolution = Resolution(1920, 1080), // FIXME take from screen
+            aspectRatio = AspectRatio.AR_4X3
         )
         camera = SimpleReflekt(context!!, settings)
 

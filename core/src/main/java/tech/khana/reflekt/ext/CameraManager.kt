@@ -143,3 +143,8 @@ fun CameraManager.supportExposure(cameraId: String): Boolean {
     val characteristics = getCameraCharacteristics(cameraId)
     return characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES)?.size ?: 0 > 1
 }
+
+fun CameraManager.supportAwb(cameraId: String): Boolean {
+    val characteristics = getCameraCharacteristics(cameraId)
+    return characteristics.get(CameraCharacteristics.CONTROL_AWB_AVAILABLE_MODES)?.size ?: 0 > 1
+}

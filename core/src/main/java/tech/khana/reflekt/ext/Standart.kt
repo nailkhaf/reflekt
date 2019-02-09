@@ -7,3 +7,5 @@ suspend fun Mutex.lockSelf() {
     lock()
     lock()
 }
+
+fun now() = System.currentTimeMillis()

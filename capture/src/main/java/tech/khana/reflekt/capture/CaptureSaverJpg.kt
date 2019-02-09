@@ -22,8 +22,8 @@ import java.io.FileOutputStream
 class CaptureSaverJpg(
     private val folder: File,
     private val handlerThread: HandlerThread = HandlerThread(REFLEKT_TAG).apply { start() },
-    private val photoListener: (File) -> Unit,
-    private val flippedImageOnFront: Boolean = true
+    private val flippedImageOnFront: Boolean = true,
+    private val photoListener: (File) -> Unit
 ) : ReflektSurface, ImageReader.OnImageAvailableListener {
 
     private val captureDispatcher = Handler(handlerThread.looper).asCoroutineDispatcher(REFLEKT_TAG)
