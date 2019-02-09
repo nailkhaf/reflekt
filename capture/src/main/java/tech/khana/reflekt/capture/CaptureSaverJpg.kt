@@ -22,7 +22,8 @@ import java.io.FileOutputStream
 class CaptureSaverJpg(
     private val folder: File,
     private val handlerThread: HandlerThread = HandlerThread(REFLEKT_TAG).apply { start() },
-    private val photoListener: (File) -> Unit
+    private val photoListener: (File) -> Unit,
+    private val flippedImageOnFront: Boolean = true
 ) : ReflektSurface, ImageReader.OnImageAvailableListener {
 
     private val captureDispatcher = Handler(handlerThread.looper).asCoroutineDispatcher(REFLEKT_TAG)
@@ -74,7 +75,7 @@ class CaptureSaverJpg(
 
             val matrix = Matrix().apply {
                 setRotate(neededRotation.value.toFloat())
-                if (lensDirect == LensDirect.FRONT) {
+                if (flippedImageOnFront && lensDirect == LensDirect.FRONT) {
                     when (neededRotation) {
                         Rotation._0, Rotation._180 -> postScale(1f, -1f)
                         Rotation._90, Rotation._270 -> postScale(-1f, 1f)
