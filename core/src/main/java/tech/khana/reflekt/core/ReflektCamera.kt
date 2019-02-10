@@ -11,9 +11,12 @@ import android.os.HandlerThread
 import android.support.v4.content.ContextCompat
 import android.support.v4.content.PermissionChecker.PERMISSION_GRANTED
 import android.view.Surface
-import kotlinx.coroutines.*
 import kotlinx.coroutines.android.asCoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import tech.khana.reflekt.ext.*
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.models.CameraMode.*
@@ -219,6 +222,8 @@ class ReflektCameraImpl(
         }
 
         session.setRepeatingRequest(request, handlerThread, repeatingCallback)
+        delay(150)
+
         currentReflekts.filter { PREVIEW in it.supportedModes }.forEach { it.onStart(PREVIEW) }
     }
 
@@ -328,7 +333,7 @@ class ReflektCameraImpl(
             build()
         }
 
-        session.setRepeatingRequest(request)
+        session.setRepeatingRequest(request, handlerThread, repeatingCallback)
 
         currentReflekts.filter { RECORD in it.supportedModes }.forEach { it.onStart(RECORD) }
 

@@ -3,12 +3,9 @@ package tech.khana.reflekt.core
 import android.content.Context
 import android.os.HandlerThread
 import kotlinx.coroutines.withContext
-import tech.khana.reflekt.ext.now
 import tech.khana.reflekt.models.Settings
 import tech.khana.reflekt.models.switch
 import tech.khana.reflekt.preferences.JpegPreference
-import tech.khana.reflekt.utils.Logger
-import tech.khana.reflekt.utils.debug
 
 class SimpleReflekt(
     ctx: Context,
@@ -51,10 +48,13 @@ class SimpleReflekt(
 
 
     suspend fun capture() = withContext(cameraDispatcher) {
-        camera.trigger3A()
-        camera.lock3A()
-        camera.capture()
-        camera.unlock3A()
+        try {
+            camera.trigger3A()
+            camera.lock3A()
+            camera.capture()
+        } finally {
+            camera.unlock3A()
+        }
     }
 
     suspend fun stop() = withContext(cameraDispatcher) {
