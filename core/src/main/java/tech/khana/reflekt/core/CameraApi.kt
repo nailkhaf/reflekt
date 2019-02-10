@@ -1,6 +1,7 @@
 package tech.khana.reflekt.core
 
 import android.hardware.camera2.CaptureRequest
+import android.location.Location
 import android.view.Surface
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.models.ReflektFormat.Image.Jpeg
@@ -16,6 +17,8 @@ interface Reflekt {
     suspend fun flash(flashMode: FlashMode)
 
     suspend fun zoom(zoom: Float)
+
+    suspend fun location(location: Location)
 
     suspend fun release(): Any
 }
@@ -73,21 +76,6 @@ interface ReflektSurface {
 
     suspend fun release() {
     }
-}
-
-interface JpegSurface : ReflektSurface {
-
-    override val format: Jpeg
-}
-
-interface YuvSurface : ReflektSurface {
-
-    override val format: Yuv
-}
-
-interface PrivSurface : ReflektSurface {
-
-    override val format: Priv
 }
 
 interface WatcherSurface : ReflektSurface {

@@ -2,6 +2,7 @@ package tech.khana.reflekt.core
 
 import android.content.Context
 import android.hardware.camera2.CameraManager
+import android.location.Location
 import android.os.Handler
 import android.os.HandlerThread
 import kotlinx.coroutines.android.asCoroutineDispatcher
@@ -14,6 +15,7 @@ import tech.khana.reflekt.models.FlashMode
 import tech.khana.reflekt.models.LensDirect
 import tech.khana.reflekt.models.Settings
 import tech.khana.reflekt.preferences.FlashPreference
+import tech.khana.reflekt.preferences.JpegPreference
 import tech.khana.reflekt.preferences.ZoomPreference
 import tech.khana.reflekt.utils.REFLEKT_TAG
 
@@ -77,6 +79,10 @@ abstract class AbstractReflekt(
         camera.stopPreview()
         ZoomPreference.zoomLevel = zoom
         camera.startPreview()
+    }
+
+    override suspend fun location(location: Location) = withContext(cameraDispatcher) {
+        JpegPreference.location = location
     }
 
     override suspend fun release() = withContext(cameraDispatcher) {

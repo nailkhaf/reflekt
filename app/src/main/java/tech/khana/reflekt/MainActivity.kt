@@ -1,8 +1,13 @@
 package tech.khana.reflekt
 
 import android.Manifest.permission.*
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.graphics.Color
+import android.hardware.camera2.CameraManager
+import android.location.LocationManager
+import android.location.LocationProvider
 import android.os.Bundle
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
@@ -34,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("MissingPermission")
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) hideSystemUI()
@@ -84,11 +90,12 @@ class MainActivity : AppCompatActivity() {
         if (ContextCompat.checkSelfPermission(this, CAMERA) != PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE) != PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, READ_EXTERNAL_STORAGE) != PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, RECORD_AUDIO) != PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(this, RECORD_AUDIO) != PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(this, ACCESS_COARSE_LOCATION) != PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(CAMERA, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, RECORD_AUDIO),
+                arrayOf(CAMERA, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, RECORD_AUDIO, ACCESS_COARSE_LOCATION),
                 PERMISSION_REQ_CODE
             )
         } else {
