@@ -16,7 +16,7 @@ import kotlinx.android.synthetic.main.fragment_camera.*
 import kotlinx.coroutines.*
 import tech.khana.reflekt.capture.CaptureSaverJpg
 import tech.khana.reflekt.core.SimpleReflekt
-import tech.khana.reflekt.frames.FrameProcessor
+import tech.khana.reflekt.frames.RgbFrameProcessor
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.preview.ReflektPreview
 import tech.khana.reflekt.utils.REFLEKT_TAG
@@ -65,7 +65,7 @@ class CameraFragment : Fragment(), CoroutineScope {
     private val frameProcessor by lazy {
         var lastTime = System.currentTimeMillis()
         var delay = (System.currentTimeMillis() - lastTime).toFloat()
-        FrameProcessor {
+        RgbFrameProcessor(context!!) {
             delay = (System.currentTimeMillis() - lastTime) * 0.05f + delay * 0.95f
             launch {
                 messageTextView.text = "frames fps: ${(1000f / delay).roundToInt()}"

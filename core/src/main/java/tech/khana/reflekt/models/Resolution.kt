@@ -1,6 +1,6 @@
 package tech.khana.reflekt.models
 
-data class Resolution(val width: Int, val height: Int)
+data class Resolution(val width: Int = 0, val height: Int = 0)
 
 val Resolution.area
     get() = width * height

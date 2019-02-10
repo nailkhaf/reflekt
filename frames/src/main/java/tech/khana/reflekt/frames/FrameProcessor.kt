@@ -1,6 +1,5 @@
 package tech.khana.reflekt.frames
 
-import android.media.Image
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
@@ -11,15 +10,14 @@ import tech.khana.reflekt.core.ReflektSurface
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.utils.REFLEKT_TAG
 
-class FrameProcessor(
-    private val handlerThread: HandlerThread = HandlerThread(REFLEKT_TAG).apply { start() },
-    private val onFrameReceived: (Image) -> Unit = {}
+abstract class AbstractFrameProcessor(
+    private val handlerThread: HandlerThread
 ) : ReflektSurface, ImageReader.OnImageAvailableListener {
 
     override val format = ReflektFormat.Image.Yuv
     override val supportedModes = setOf(CameraMode.PREVIEW)
 
-    private val dispatcher = Handler(handlerThread.looper).asCoroutineDispatcher(REFLEKT_TAG)
+    protected val dispatcher = Handler(handlerThread.looper).asCoroutineDispatcher(REFLEKT_TAG)
     private var imageReader: ImageReader? = null
 
     override suspend fun acquireSurface(config: SurfaceConfig): Surface = withContext(dispatcher) {
@@ -28,7 +26,7 @@ class FrameProcessor(
         imageReader?.close()
 
         ImageReader.newInstance(resolution.width, resolution.height, format.format, 2).apply {
-            setOnImageAvailableListener(this@FrameProcessor, Handler(handlerThread.looper))
+            setOnImageAvailableListener(this@AbstractFrameProcessor, Handler(handlerThread.looper))
         }.also {
             imageReader = it
         }.surface
@@ -40,12 +38,6 @@ class FrameProcessor(
 //            .filter { it.width <= MAX_SIDE && it.height <= MAX_SIDE }
             .sortedBy { it.area }
             .last()
-
-    override fun onImageAvailable(reader: ImageReader) {
-        reader.acquireNextImage()?.use {
-            onFrameReceived(it)
-        }
-    }
 
     override suspend fun release() = withContext(dispatcher) {
         handlerThread.quitSafely()
