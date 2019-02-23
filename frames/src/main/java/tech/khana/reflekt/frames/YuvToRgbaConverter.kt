@@ -5,10 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.ImageFormat
 import android.media.Image
 import android.support.v8.renderscript.*
-import tech.khana.reflekt.ext.now
 import tech.khana.reflekt.models.Resolution
-import tech.khana.reflekt.utils.Logger
-import tech.khana.reflekt.utils.debug
 
 
 class YuvToRgbaConverter(
@@ -32,17 +29,13 @@ class YuvToRgbaConverter(
             currentResolution = Resolution(image.width, image.height)
         }
 
-        val t1 = now()
         YUV420toNV21(image, nv21)
-        val t2 = now()
         input.copyFrom(nv21)
 
         script.setInput(input)
         script.forEach(output)
 
         output.copyTo(bitmap)
-
-        Logger.defaultLogger.debug { "convert time: ${t2 - t1}" }
 
         return bitmap
     }

@@ -9,16 +9,22 @@ internal object FlashPreference : CameraPreference {
 
     var flashMode: FlashMode = FlashMode.AUTO
 
-    override fun CaptureRequest.Builder.apply(cameraMode: CameraMode) = when {
-
-        cameraMode == CameraMode.PREVIEW && flashMode == FlashMode.TORCH ->
-            set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH)
-
-        cameraMode == CameraMode.PREVIEW ->
+    override fun CaptureRequest.Builder.apply(cameraMode: CameraMode) = when (flashMode) {
+        FlashMode.AUTO -> {
+            set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH)
             set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
-
-        else -> {
-            // nothing
+        }
+        FlashMode.ON -> {
+            set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH)
+            set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
+        }
+        FlashMode.TORCH -> {
+            set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+            set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH)
+        }
+        FlashMode.OFF -> {
+            set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+            set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF)
         }
     }
 }

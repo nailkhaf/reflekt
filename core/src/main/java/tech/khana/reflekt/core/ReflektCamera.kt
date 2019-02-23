@@ -20,7 +20,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import tech.khana.reflekt.ext.*
 import tech.khana.reflekt.models.*
 import tech.khana.reflekt.models.CameraMode.*
-import tech.khana.reflekt.preferences.DefaultPreference
 import tech.khana.reflekt.preferences.JpegPreference
 import tech.khana.reflekt.preferences.ZoomPreference
 import tech.khana.reflekt.utils.Logger
@@ -32,8 +31,10 @@ import java.util.concurrent.TimeoutException
 class ReflektCameraImpl(
     private val ctx: Context,
     private val handlerThread: HandlerThread,
-    private val cameraPreferences: List<CameraPreference> = listOf(DefaultPreference, JpegPreference)
+    private val cameraPreferences: List<CameraPreference>
 ) : ReflektCamera, Logger by Logger.defaultLogger {
+
+    override val tag: String = "reflekt-camera"
 
     private val cameraManager = ctx.cameraManager
 
@@ -48,6 +49,10 @@ class ReflektCameraImpl(
     private val cameraOpenMutex = Mutex()
 
     private val repeatingState = PreviewState()
+
+    private val cameraEventChannel = CameraEventChannel()
+    private val sessionEventChannel = SessionEventChannel()
+    private val captureEventChannel = CaptureEventChannel()
 
     private val repeatingCallback = object : CameraCaptureSession.CaptureCallback() {
 
@@ -266,29 +271,32 @@ class ReflektCameraImpl(
         var exposureComplete = cameraManager.supportExposure(session.device.id).not() || repeatingState.exposured
         var awbStateComplete = cameraManager.supportAwb(session.device.id).not() || repeatingState.balanced
 
-        trigger@ do {
-            val channel = session.trigger3A(this, handlerThread, previewSurfaces)
-            if (focusComplete && exposureComplete && awbStateComplete) break@trigger
-            for ((key, result) in channel) {
-                when (key) {
-                    CONTROL_AF_STATE -> {
-                        if (result != CONTROL_AF_STATE_INACTIVE)
-                            focusComplete = result == CONTROL_AF_STATE_FOCUSED_LOCKED
-                    }
-                    CONTROL_AE_STATE -> {
-                        if (result != CONTROL_AE_STATE_INACTIVE)
-                            exposureComplete = result == CONTROL_AE_STATE_CONVERGED
-                    }
-                    CONTROL_AWB_STATE -> {
-                        if (result != CONTROL_AWB_STATE_INACTIVE)
-                            awbStateComplete = result == CONTROL_AWB_STATE_CONVERGED
-                    }
-                    else -> error("unknown key")
-                }
+        val requestBuilder = session.device.createCaptureRequest(TEMPLATE_PREVIEW).apply {
+            addAllSurfaces(previewSurfaces)
+            cameraPreferences.forEach { with(it) { apply(PREVIEW) } }
+        }
 
-                if (focusComplete && exposureComplete && awbStateComplete) break@trigger
+        val channel = session.trigger3A(this, requestBuilder, handlerThread)
+        if (focusComplete && exposureComplete && awbStateComplete) return@withContext
+        for ((key, result) in channel) {
+            when (key) {
+                CONTROL_AF_STATE -> {
+                    if (result != CONTROL_AF_STATE_INACTIVE)
+                        focusComplete = result == CONTROL_AF_STATE_FOCUSED_LOCKED
+                }
+                CONTROL_AE_STATE -> {
+                    if (result != CONTROL_AE_STATE_INACTIVE)
+                        exposureComplete = result == CONTROL_AE_STATE_CONVERGED
+                }
+                CONTROL_AWB_STATE -> {
+                    if (result != CONTROL_AWB_STATE_INACTIVE)
+                        awbStateComplete = result == CONTROL_AWB_STATE_CONVERGED
+                }
+                else -> error("unknown key")
             }
-        } while (focusComplete.not() || exposureComplete.not() || awbStateComplete.not())
+
+            if (focusComplete && exposureComplete && awbStateComplete) break
+        }
     }
 
     override suspend fun lock3A() = withContext(cameraDispatcher) {
@@ -301,7 +309,12 @@ class ReflektCameraImpl(
         val previewSurfaces = surfaces[PREVIEW]?.mapNotNull { it }
         check(previewSurfaces != null && previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
 
-        session.lock3A(previewSurfaces)
+        val requestBuilder = session.device.createCaptureRequest(TEMPLATE_PREVIEW).apply {
+            addAllSurfaces(previewSurfaces)
+//            cameraPreferences.forEach { with(it) { apply(PREVIEW) } }
+        }
+
+        session.lock3A(requestBuilder, handlerThread)
     }
 
     override suspend fun unlock3A() = withContext(cameraDispatcher) {
@@ -314,7 +327,12 @@ class ReflektCameraImpl(
         val previewSurfaces = surfaces[PREVIEW]?.mapNotNull { it }
         check(previewSurfaces != null && previewSurfaces.isNotEmpty()) { "preview surfaces is empty" }
 
-        session.unlock3A(previewSurfaces)
+        val requestBuilder = session.device.createCaptureRequest(TEMPLATE_PREVIEW).apply {
+            addAllSurfaces(previewSurfaces)
+            cameraPreferences.forEach { with(it) { apply(PREVIEW) } }
+        }
+
+        session.unlock3A(requestBuilder)
     }
 
     override suspend fun startRecord() = withContext(cameraDispatcher) {

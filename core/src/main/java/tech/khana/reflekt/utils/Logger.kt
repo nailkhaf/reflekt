@@ -4,12 +4,14 @@ import android.util.Log
 import android.util.Log.*
 
 const val REFLEKT_TAG = "reflekt-log"
+const val DEFAULT_LEVEL = DEBUG
 
 interface Logger {
 
     val tag: String
 
     val level: Int
+        get() = DEFAULT_LEVEL
 
     fun log(level: Int, message: String, throwable: Throwable? = null)
 
@@ -19,7 +21,7 @@ interface Logger {
 
             override val tag: String = REFLEKT_TAG
 
-            override val level: Int = VERBOSE
+            override val level: Int = DEFAULT_LEVEL
 
             override fun log(level: Int, message: String, throwable: Throwable?) {
                 if (throwable == null) {

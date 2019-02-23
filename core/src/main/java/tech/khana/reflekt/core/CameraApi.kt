@@ -4,9 +4,6 @@ import android.hardware.camera2.CaptureRequest
 import android.location.Location
 import android.view.Surface
 import tech.khana.reflekt.models.*
-import tech.khana.reflekt.models.ReflektFormat.Image.Jpeg
-import tech.khana.reflekt.models.ReflektFormat.Image.Yuv
-import tech.khana.reflekt.models.ReflektFormat.Priv
 
 interface Reflekt {
 
@@ -93,3 +90,5 @@ interface SurfaceOutputConfigurator {
 
     fun defineOutputType(surface: ReflektSurface): OutputType
 }
+
+typealias Reducer<STATE, EVENT> = (STATE, EVENT) -> STATE

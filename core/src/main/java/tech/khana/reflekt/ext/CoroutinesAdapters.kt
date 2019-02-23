@@ -69,20 +69,16 @@ internal suspend fun CameraCaptureSession.capture(
 }
 
 internal suspend fun CameraCaptureSession.trigger3A(
-    scope: CoroutineScope, handlerThread: HandlerThread, surfaces: List<Surface>
+    scope: CoroutineScope, requestBuilder: CaptureRequest.Builder, handlerThread: HandlerThread
 ) = Channel<Pair<CaptureResult.Key<Int>, Int>>(Channel.UNLIMITED).also { channel ->
 
-    val request = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).run {
+    val request = requestBuilder.run {
         set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START)
         set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START)
-        addAllSurfaces(surfaces)
         build()
     }
 
-
     capture(request, object : CameraCaptureSession.CaptureCallback() {
-
-
 
         override fun onCaptureProgressed(
             session: CameraCaptureSession,
@@ -114,39 +110,55 @@ internal suspend fun CameraCaptureSession.trigger3A(
             request: CaptureRequest,
             failure: CaptureFailure
         ) {
-            scope.launch {
-                channel.close(IllegalStateException())
-            }
+            channel.close(IllegalStateException())
         }
     }, Handler(handlerThread.looper))
 }
 
 internal suspend fun CameraCaptureSession.lock3A(
-    surfaces: List<Surface>
-) {
+    requestBuilder: CaptureRequest.Builder, handlerThread: HandlerThread
+) = suspendCoroutine<Unit> { continuation ->
 
-    val request = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).run {
+    val request = requestBuilder.run {
         set(CaptureRequest.CONTROL_AE_LOCK, true)
         set(CaptureRequest.CONTROL_AWB_LOCK, true)
-        addAllSurfaces(surfaces)
         build()
     }
 
-    capture(request, null, null)
+    capture(request,
+        object : CameraCaptureSession.CaptureCallback() {
+            override fun onCaptureCompleted(
+                session: CameraCaptureSession,
+                request: CaptureRequest,
+                result: TotalCaptureResult
+            ) {
+                continuation.resume(Unit)
+            }
+
+            override fun onCaptureFailed(
+                session: CameraCaptureSession,
+                request: CaptureRequest,
+                failure: CaptureFailure
+            ) {
+                continuation.resumeWithException(IllegalStateException())
+            }
+        }
+        , Handler(handlerThread.looper)
+    )
 }
 
 internal suspend fun CameraCaptureSession.unlock3A(
-    surfaces: List<Surface>
+    requestBuilder: CaptureRequest.Builder
 ) {
 
-    val request = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).run {
+    val request = requestBuilder.run {
+        CaptureResult.FLASH_STATE
         set(CaptureRequest.CONTROL_AE_LOCK, false)
         set(CaptureRequest.CONTROL_AWB_LOCK, false)
         set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL)
         }
-        addAllSurfaces(surfaces)
         build()
     }
 

@@ -109,7 +109,7 @@ class CameraFragment : Fragment(), CoroutineScope {
         settings = Settings(
             surfaces = listOf(preview, frameProcessor, captureSaver),
             displayRotation = rotation,
-            lensDirect = LensDirect.FRONT,
+            lensDirect = LensDirect.BACK,
             displayResolution = Resolution(1920, 1080), // FIXME take from screen
             aspectRatio = AspectRatio.AR_4X3
         )
@@ -149,20 +149,20 @@ class CameraFragment : Fragment(), CoroutineScope {
             }
         }
 
-//        flashButton.setOnClickListener {
-//            launch {
-//                val flashModes = camera.availableFlashModes()
-//                AlertDialog.Builder(requireActivity()).apply {
-//                    setTitle(R.string.pick_lens_direct)
-//                    setItems(flashModes.map { it.name }.toTypedArray()) { _, id ->
-//                        this@CameraFragment.launch {
-//                            camera.flash(flashModes[id])
-//                        }
-//                    }
-//                    show()
-//                }
-//            }
-//        }
+        flashButton.setOnClickListener {
+            launch {
+                val flashModes = FlashMode.values()
+                AlertDialog.Builder(requireActivity()).apply {
+                    setTitle(R.string.pick_lens_direct)
+                    setItems(flashModes.map { it.name }.toTypedArray()) { _, id ->
+                        this@CameraFragment.launch {
+                            camera.flash(flashModes[id])
+                        }
+                    }
+                    show()
+                }
+            }
+        }
 
 //        runBlocking {
 //            val maxZoom = camera.maxZoom()

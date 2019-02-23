@@ -12,9 +12,7 @@ import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.FrameLayout
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import tech.khana.reflekt.core.ReflektSurface
@@ -24,7 +22,6 @@ import tech.khana.reflekt.preview.Side.HEIGHT
 import tech.khana.reflekt.preview.Side.WIDTH
 import tech.khana.reflekt.utils.Logger
 import tech.khana.reflekt.utils.debug
-import kotlin.coroutines.CoroutineContext
 
 @SuppressLint("Recycle")
 class ReflektPreview @JvmOverloads constructor(
@@ -216,12 +213,14 @@ class ReflektPreview @JvmOverloads constructor(
             val newHeight = (width * aspectRatio).toInt()
             textureView.setTransform(textureMatrix.apply {
                 reset()
+
                 if (newHeight > height) {
                     when (rotation) {
                         Rotation._0 -> {
                             postTranslate(0f, -(newHeight - height) / 2f)
                         }
-                        Rotation._90 -> { // FIXME check that image in center
+                        Rotation._90 -> {
+                            // FIXME check that image in center
                             postTranslate((newHeight - height) / 2f, 0f)
                         }
                         Rotation._270 -> { // FIXME check that image in center
