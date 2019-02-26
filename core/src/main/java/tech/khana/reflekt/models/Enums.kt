@@ -1,6 +1,5 @@
 package tech.khana.reflekt.models
 
-import android.annotation.SuppressLint
 import android.hardware.camera2.CameraMetadata
 
 
@@ -33,7 +32,6 @@ enum class CameraMode {
 }
 
 
-@SuppressLint("InlinedApi")
 enum class SupportLevel(val value: Int, val description: String) {
     LEGACY(CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY, "Legacy support"),
     LIMIT(CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED, "Limited support"),
