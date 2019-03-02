@@ -134,7 +134,7 @@ class CameraPreview @JvmOverloads constructor(
         val scale = viewRatio / previewRatio
         when (displayOrientation) {
             0 -> {
-                postRotate(180f, centerX, centerY)
+                postRotate(0f, centerX, centerY)
                 postScale(
                     if (scale > 1) scale else 1f,
                     if (scale < 1) 1f / scale else 1f,
