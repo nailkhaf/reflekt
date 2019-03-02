@@ -16,6 +16,8 @@ import android.view.Surface
 import tech.khana.reflekt.api.CameraException
 import tech.khana.reflekt.api.models.Lens
 import tech.khana.reflekt.api.models.SupportLevel
+import tech.khana.reflekt.api.models.isLevelSupported
+import tech.khana.reflekt.api.models.supportLevelOf
 
 internal fun Context.requireCameraPermission() {
     if (checkSelfPermission(this, CAMERA) != PERMISSION_GRANTED) {
@@ -68,8 +70,8 @@ internal fun CameraCharacteristics.hardwareOrientation(): Int {
 }
 
 internal fun CameraCharacteristics.supportedLevel(): SupportLevel {
-    val level = get(INFO_SUPPORTED_HARDWARE_LEVEL)
-    return SupportLevel.values().first { it.value == level }
+    val deviceLevel = get(INFO_SUPPORTED_HARDWARE_LEVEL)
+    return supportLevelOf(deviceLevel)
 }
 
 fun CameraCharacteristics.isHardwareLevelSupported(
@@ -77,11 +79,7 @@ fun CameraCharacteristics.isHardwareLevelSupported(
 ): Boolean {
     val deviceLevel = get(INFO_SUPPORTED_HARDWARE_LEVEL)
         ?: error("can't define hardware level")
-    return if (deviceLevel == INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
-        requiredLevel.value == deviceLevel
-    } else {
-        requiredLevel.value <= deviceLevel
-    }
+    return supportLevelOf(deviceLevel).isLevelSupported(requiredLevel)
 }
 
 internal fun CameraCharacteristics.maxNonStallingStreams(): Int =

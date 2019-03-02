@@ -81,6 +81,7 @@ internal class CameraImpl(
 
         session = sessionFactory(surfacesByMode).also { session ->
             camera.createSession(surfaceList.map { it.first }, session, handler)
+            session.startPreview()
         }
 
         listenSurfaces(surfacesChannel)
@@ -95,9 +96,8 @@ internal class CameraImpl(
             debug { "#onSurfacesChanged" }
             session?.close()
             session = sessionFactory(item.groupByMode()).also { session ->
-                camera.createSession(
-                    item.map { it.first }, session, handler
-                )
+                camera.createSession(item.map { it.first }, session, handler)
+                session.startPreview()
             }
         }
     }

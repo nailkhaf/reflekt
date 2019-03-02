@@ -1,1 +1,10 @@
-include ':app', ':core', ':preview', ':capture', ':frames', ':video', ':api', ':camera', ':session-frames'
+include ':api',
+        ':preview',
+        ':camera',
+        ':session-frames',
+        ':frames-app'
+//':app' ,
+//':core' ,
+//':capture' ,
+//':frames' ,
+//':video' ,

@@ -4,7 +4,7 @@ import android.hardware.camera2.CameraManager
 import tech.khana.reflekt.api.models.Lens
 import tech.khana.reflekt.api.models.Lens.FRONT
 
-abstract class Manager : CameraManager.AvailabilityCallback() {
+abstract class Manager : CameraManager.AvailabilityCallback(), AutoCloseable {
 
     abstract suspend fun open(lens: Lens = FRONT)
 

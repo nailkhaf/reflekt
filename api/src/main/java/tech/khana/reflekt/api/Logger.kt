@@ -7,6 +7,7 @@ interface Logger {
     val tag: String
 
     val logPrefix: String
+        get() = ""
 
     fun log(message: String, error: Throwable? = null)
 
@@ -14,18 +15,16 @@ interface Logger {
 
         override val tag: String = "reflekt"
 
-        override val logPrefix: String = ""
-
         override fun log(message: String, error: Throwable?) {
             if (error == null) {
-                Log.d(tag, "$logPrefix $message")
+                Log.d(tag, message)
             } else {
-                Log.e(tag, "$logPrefix $message", error)
+                Log.e(tag, message, error)
             }
         }
     }
 }
 
-fun Logger.debug(message: () -> String) = log(message())
+fun Logger.debug(message: () -> String) = log(logPrefix + " " + message())
 
-fun Logger.error(error: Throwable) = log(error.message ?: "", error)
+fun Logger.error(error: Throwable) = log(logPrefix + (error.message ?: ""), error)

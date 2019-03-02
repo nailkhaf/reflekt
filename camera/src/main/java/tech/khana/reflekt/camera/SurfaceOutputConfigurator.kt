@@ -14,8 +14,8 @@ import tech.khana.reflekt.camera.extensions.outputResolutions
 import kotlin.reflect.KClass
 
 private const val MAX_SURFACE_COUNT = 3
-const val MAX_PREVIEW_WIDTH = 1920
-const val MAX_PREVIEW_HEIGHT = 1080
+private const val MAX_PREVIEW_WIDTH = 1920
+private const val MAX_PREVIEW_HEIGHT = 1080
 
 internal class SurfaceOutputConfigurator(
     private val cameraCharacteristics: CameraCharacteristics,

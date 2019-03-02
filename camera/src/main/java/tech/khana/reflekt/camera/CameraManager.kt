@@ -20,7 +20,7 @@ import kotlin.coroutines.CoroutineContext
 class CameraManager(
     private val ctx: Context,
     private val cameraConfig: CameraConfig,
-    sessionFactory: SessionFactory
+    sessionFactory: (Handler, CoroutineScope) -> SessionFactory
 ) : Manager(), CoroutineScope, Logger by Logger {
 
     private val handlerThread = HandlerThread("reflekt").apply {
@@ -33,7 +33,9 @@ class CameraManager(
     private val cameraFactory = CameraFactory(
         coroutineScope = this,
         cameraManager = cameraManager,
-        sessionFactory = sessionFactory,
+        sessionFactory = sessionFactory(
+            handler, this
+        ),
         handler = handler
     )
 
@@ -45,6 +47,7 @@ class CameraManager(
     private val availableCameras = mutableSetOf<String>()
 
     init {
+        cameraConfig.surfaces.forEach { requireNotNull(it) }
         cameraManager.registerAvailabilityCallback(this, handler)
     }
 
@@ -59,23 +62,35 @@ class CameraManager(
     @RequiresPermission(Manifest.permission.CAMERA)
     override suspend fun open(lens: Lens) = withContext(coroutineContext) {
         debug { "#open $lens" }
-        camera?.close()
+        check(camera == null) { "camera is already opened" }
         ctx.requireCameraPermission()
         val camera = cameraFactory()
         val id = cameraManager.findCameraByLens(lens)
         check(id in availableCameras) { "camera is not available" }
         cameraManager.openCameraDevice(id, camera, handler)
         camera.start(cameraConfig)
+        this@CameraManager.camera = camera
         debug { "#opened id=$id" }
     }
 
+    override fun close() {
+        debug { "#close" }
+        launch {
+            job.cancelChildren()
+            camera?.close()
+            camera = null
+            debug { "#closed" }
+        }
+    }
 
     override fun release() = runBlocking {
         debug { "#release" }
         withContext(coroutineContext) {
-            cameraConfig.surfaces.forEach { it.release() }
-            cameraManager.unregisterAvailabilityCallback(this@CameraManager)
+            job.cancelChildren()
             camera?.close()
+            cameraManager.unregisterAvailabilityCallback(this@CameraManager)
+            cameraConfig.surfaces.forEach { it.release() }
+            job.cancel()
             Unit
         }
         debug { "#released" }
