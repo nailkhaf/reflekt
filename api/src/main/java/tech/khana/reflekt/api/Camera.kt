@@ -13,8 +13,9 @@ abstract class Camera : AutoCloseable, CameraDevice.StateCallback() {
 
     protected fun List<Pair<Surface, Set<CameraMode>>>.groupByMode() =
         flatMap { (surface, modes) -> modes.map { it to surface } }
-            .groupBy(
-                keySelector = { it.first },
-                valueTransform = { it.second }
-            )
+            .groupBy(keySelector = { it.first }, valueTransform = { it.second })
 }
+
+fun <T> List<Pair<T, Set<CameraMode>>>.groupByCameraMode() =
+    flatMap { (t, modes) -> modes.map { it to t } }
+        .groupBy(keySelector = { it.first }, valueTransform = { it.second })

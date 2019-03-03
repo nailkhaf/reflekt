@@ -16,14 +16,22 @@ val Size.ratio: Float
 val Size.area: Int
     get() = width * height
 
-fun getCorrectOrientation(lensDirect: Lens, sensorOrientation: Int, displayRotation: Int): Int {
+fun getCorrectOrientation(
+    lensDirect: Lens,
+    sensorOrientation: Int,
+    displayRotation: Int
+): Int {
     var screenOrientation = (displayRotation + 45) / 90 * 90
     if (lensDirect == Lens.FRONT) screenOrientation = -screenOrientation
     return (sensorOrientation + screenOrientation + 360) % 360
 }
 
 fun getCorrectOrientation(surfaceConfig: SurfaceConfig): Int =
-    getCorrectOrientation(surfaceConfig.lens, surfaceConfig.sensorOrientation, surfaceConfig.screenOrientation)
+    getCorrectOrientation(
+        surfaceConfig.lens,
+        surfaceConfig.sensorOrientation,
+        surfaceConfig.screenOrientation
+    )
 
 fun surfaceOrientationToInt(value: Int) = when (value) {
     Surface.ROTATION_0 -> 0

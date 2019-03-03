@@ -25,6 +25,8 @@ interface Logger {
     }
 }
 
-fun Logger.debug(message: () -> String) = log(logPrefix + " " + message())
+fun Logger.debug(message: () -> String) =
+    log(logPrefix + " " + message())
 
-fun Logger.error(error: Throwable) = log(logPrefix + (error.message ?: ""), error)
+fun Logger.error(error: Throwable) =
+    log(logPrefix + (error.message ?: ""), error)

@@ -1,6 +1,6 @@
 include ':api',
         ':camera',
-        ':session-frames',
+        ':session',
         ':preview',
         ':frames' ,
         ':frames-app'

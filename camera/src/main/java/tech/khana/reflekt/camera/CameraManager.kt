@@ -7,7 +7,10 @@ import android.os.HandlerThread
 import android.support.annotation.RequiresPermission
 import kotlinx.coroutines.*
 import kotlinx.coroutines.android.asCoroutineDispatcher
-import tech.khana.reflekt.api.*
+import tech.khana.reflekt.api.Logger
+import tech.khana.reflekt.api.Manager
+import tech.khana.reflekt.api.SessionFactory
+import tech.khana.reflekt.api.debug
 import tech.khana.reflekt.api.models.CameraConfig
 import tech.khana.reflekt.api.models.Lens
 import tech.khana.reflekt.camera.extensions.cameraManager
@@ -41,7 +44,7 @@ class CameraManager(
     override val coroutineContext: CoroutineContext
         get() = handler.asCoroutineDispatcher() + errorHandler + job
 
-    private var camera: Camera? = null
+    private var camera: CameraDevice? = null
     private val availableCameras = mutableSetOf<String>()
 
     init {
@@ -70,7 +73,7 @@ class CameraManager(
             }
         } ?: error("camera is not available")
         cameraManager.openCameraDevice(id, camera, handler)
-        camera.start(cameraConfig)
+        camera.startSession(cameraConfig)
         this@CameraManager.camera = camera
         debug { "#opened id=$id" }
     }
@@ -79,7 +82,7 @@ class CameraManager(
         withContext(coroutineContext) {
             debug { "#close" }
             job.cancelChildren()
-            camera?.close()
+            camera.close()
             camera = null
             debug { "#closed" }
         }
@@ -89,7 +92,7 @@ class CameraManager(
         withContext(coroutineContext) {
             debug { "#release" }
             job.cancelChildren()
-            camera?.close()
+            camera.close()
             cameraManager.unregisterAvailabilityCallback(this@CameraManager)
             cameraConfig.surfaces.forEach { it.release() }
             job.cancel()

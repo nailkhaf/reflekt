@@ -11,7 +11,8 @@ enum class SupportLevel {
     EXTERNAL
 }
 
-fun SupportLevel.isLevelSupported(requiredLevel: SupportLevel): Boolean = ordinal >= requiredLevel.ordinal
+fun SupportLevel.isLevelSupported(requiredLevel: SupportLevel): Boolean =
+    ordinal >= requiredLevel.ordinal
 
 fun supportLevelOf(value: Int): SupportLevel = when {
     value == INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY -> SupportLevel.LEGACY

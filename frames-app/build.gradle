@@ -31,7 +31,7 @@ dependencies {
 
     implementation project(":api")
     implementation project(":preview")
-    implementation project(":session-frames")
+    implementation project(':session')
     implementation project(":camera")
 
     implementation 'com.android.support:appcompat-v7:28.0.0'

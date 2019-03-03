@@ -37,17 +37,18 @@ internal class CameraImpl(
 
     private lateinit var camera: CameraDevice
 
-    private var session: Session? = null
+    private var session: CaptureSession? = null
 
     override suspend fun start(
         cameraConfig: CameraConfig
     ) = cameraContext {
-        debug { "#start" }
+        debug { "#startSession" }
         check(::camera.isInitialized) { "camera is not initialized" }
         check(session == null) { "session is already started" }
 
         val maxRecordSize = camera.maxRecordSize()
-        val cameraCharacteristics = cameraManager.getCameraCharacteristics(camera.id)
+        val cameraCharacteristics =
+            cameraManager.getCameraCharacteristics(camera.id)
         val surfaceOutputConfigurator = SurfaceOutputConfigurator(
             cameraCharacteristics,
             cameraConfig.screenSize,
@@ -56,6 +57,10 @@ internal class CameraImpl(
         )
         val sensorOrientation = cameraCharacteristics.hardwareOrientation()
         val lens = cameraManager.directCamera(camera.id)
+
+        val features = cameraConfig.surfaces.map { it.features }
+            .flatten()
+            .distinct()
 
         val surfaces = cameraConfig.surfaces
             .map {
@@ -77,25 +82,29 @@ internal class CameraImpl(
         } ?: error("can't get surfaces")
 
         val surfacesByMode = surfaceList
-            .groupByMode()
+            .groupByCameraMode()
 
-        session = sessionFactory(surfacesByMode).also { session ->
+        session = sessionFactory(surfacesByMode, features).also { session ->
             camera.createSession(surfaceList.map { it.first }, session, handler)
             session.startPreview()
         }
 
-        listenSurfaces(surfacesChannel)
+        listenSurfaces(surfacesChannel, features)
 
         debug { "#started" }
     }
 
     private fun listenSurfaces(
-        channel: ReceiveChannel<List<Pair<Surface, Set<CameraMode>>>>
+        channel: ReceiveChannel<List<Pair<Surface, Set<CameraMode>>>>,
+        features: List<FeatureFactory>
     ) = launch {
         for (item in channel) {
             debug { "#onSurfacesChanged" }
             session?.close()
-            session = sessionFactory(item.groupByMode()).also { session ->
+            session = sessionFactory(
+                item.groupByCameraMode(),
+                features
+            ).also { session ->
                 camera.createSession(item.map { it.first }, session, handler)
                 session.startPreview()
             }
@@ -116,7 +125,10 @@ internal class CameraImpl(
         debug { "#onError" }
         val err = cameraExceptionByErrorCode(error)
         error(err)
-        coroutineContext[CoroutineExceptionHandler]?.handleException(coroutineContext, err)
+        coroutineContext[CoroutineExceptionHandler]?.handleException(
+            coroutineContext,
+            err
+        )
         camera.close()
     }
 

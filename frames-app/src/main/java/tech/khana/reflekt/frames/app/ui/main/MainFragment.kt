@@ -17,7 +17,7 @@ import tech.khana.reflekt.api.models.Lens
 import tech.khana.reflekt.api.models.surfaceOrientationToInt
 import tech.khana.reflekt.camera.CameraManager
 import tech.khana.reflekt.frames.app.R
-import tech.khana.reflekt.session.frames.FrameProcessorSessionFactory
+import tech.khana.reflekt.session.frames.SessionFactoryImpl
 import kotlin.coroutines.CoroutineContext
 
 class MainFragment : Fragment(), CoroutineScope {
@@ -58,7 +58,7 @@ class MainFragment : Fragment(), CoroutineScope {
             screenSize = Size(size.x, size.y)
         )
         cameraManager = CameraManager(requireContext(), cameraConfig) { handler, coroutineScope ->
-            FrameProcessorSessionFactory(coroutineScope, handler)
+            SessionFactoryImpl(coroutineScope, handler)
         }
     }
 

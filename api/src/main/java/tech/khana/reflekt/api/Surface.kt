@@ -12,6 +12,8 @@ interface Surface {
 
     val modes: Set<CameraMode>
 
+    val features: List<FeatureFactory>
+
     fun acquireSurface(surfaceConfig: SurfaceConfig): ReceiveChannel<Surface>
 
     fun release() {
