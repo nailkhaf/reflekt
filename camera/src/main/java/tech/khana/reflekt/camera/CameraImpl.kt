@@ -125,9 +125,10 @@ internal class CameraImpl(
     }
 
     override fun close() {
-        launch(start = CoroutineStart.UNDISPATCHED) {
+        launch {
             debug { "#close" }
             check(::camera.isInitialized) { "camera is not initialized" }
+            job.cancelChildren()
             session?.close()
             camera.close()
             job.cancel()

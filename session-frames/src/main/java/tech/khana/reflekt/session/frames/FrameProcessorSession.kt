@@ -142,13 +142,11 @@ internal class FrameProcessorSession(
     }
 
     override fun close() {
-        launch(start = CoroutineStart.UNDISPATCHED) {
-            debug { "#close" }
-            session.stopRepeating()
-            session.abortCaptures()
-            session.close()
-            debug { "#closed" }
-        }
+        debug { "#close" }
+        session.stopRepeating()
+        session.abortCaptures()
+        session.close()
+        debug { "#closed" }
     }
 
     private suspend inline fun <R> sessionContext(

@@ -12,7 +12,8 @@ interface Surface {
 
     val modes: Set<CameraMode>
 
-    suspend fun acquireSurface(surfaceConfig: SurfaceConfig): ReceiveChannel<Surface>
+    fun acquireSurface(surfaceConfig: SurfaceConfig): ReceiveChannel<Surface>
 
-    suspend fun release()
+    fun release() {
+    }
 }

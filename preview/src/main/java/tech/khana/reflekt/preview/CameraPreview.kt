@@ -10,11 +10,12 @@ import android.view.TextureView
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import tech.khana.reflekt.api.Logger
 import tech.khana.reflekt.api.debug
@@ -73,10 +74,10 @@ class CameraPreview @JvmOverloads constructor(
         textureView.surfaceTextureListener = surfaceTextureListener
     }
 
-    override suspend fun acquireSurface(
+    override fun acquireSurface(
         surfaceConfig: SurfaceConfig
     ): ReceiveChannel<Surface> = Channel<Surface>(10).also { channel ->
-        withContext(Dispatchers.Main) {
+        CoroutineScope(Dispatchers.Main).launch {
             debug { "#acquireSurface" }
 
             val previewSize = surfaceConfig.outputSizes.chooseOptimalResolution()
@@ -160,6 +161,6 @@ class CameraPreview @JvmOverloads constructor(
         )
     }
 
-    override suspend fun release() {
+    override fun release() {
     }
 }

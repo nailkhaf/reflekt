@@ -33,9 +33,7 @@ class CameraManager(
     private val cameraFactory = CameraFactory(
         coroutineScope = this,
         cameraManager = cameraManager,
-        sessionFactory = sessionFactory(
-            handler, this
-        ),
+        sessionFactory = sessionFactory(handler, this),
         handler = handler
     )
 
@@ -52,11 +50,11 @@ class CameraManager(
     }
 
     override fun onCameraAvailable(cameraId: String) {
-        availableCameras += cameraId
+        launch { availableCameras += cameraId }
     }
 
     override fun onCameraUnavailable(cameraId: String) {
-        availableCameras -= cameraId
+        launch { availableCameras -= cameraId }
     }
 
     @RequiresPermission(Manifest.permission.CAMERA)
@@ -66,16 +64,20 @@ class CameraManager(
         ctx.requireCameraPermission()
         val camera = cameraFactory()
         val id = cameraManager.findCameraByLens(lens)
-        check(id in availableCameras) { "camera is not available" }
+        withTimeoutOrNull(1_000) {
+            while (id !in availableCameras) {
+                delay(10)
+            }
+        } ?: error("camera is not available")
         cameraManager.openCameraDevice(id, camera, handler)
         camera.start(cameraConfig)
         this@CameraManager.camera = camera
         debug { "#opened id=$id" }
     }
 
-    override fun close() {
-        debug { "#close" }
-        launch {
+    override fun close() = runBlocking {
+        withContext(coroutineContext) {
+            debug { "#close" }
             job.cancelChildren()
             camera?.close()
             camera = null
@@ -84,15 +86,15 @@ class CameraManager(
     }
 
     override fun release() = runBlocking {
-        debug { "#release" }
         withContext(coroutineContext) {
+            debug { "#release" }
             job.cancelChildren()
             camera?.close()
             cameraManager.unregisterAvailabilityCallback(this@CameraManager)
             cameraConfig.surfaces.forEach { it.release() }
             job.cancel()
-            Unit
+            handlerThread.quitSafely()
+            debug { "#released" }
         }
-        debug { "#released" }
     }
 }
