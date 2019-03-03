@@ -13,6 +13,7 @@ import kotlinx.android.synthetic.main.main_fragment.*
 import kotlinx.coroutines.*
 import tech.khana.reflekt.api.Manager
 import tech.khana.reflekt.api.models.CameraConfig
+import tech.khana.reflekt.api.models.Lens
 import tech.khana.reflekt.api.models.surfaceOrientationToInt
 import tech.khana.reflekt.camera.CameraManager
 import tech.khana.reflekt.frames.app.R
@@ -64,7 +65,7 @@ class MainFragment : Fragment(), CoroutineScope {
     override fun onResume() {
         super.onResume()
         launch {
-            cameraManager.open()
+            cameraManager.open(Lens.FRONT)
         }
     }
 

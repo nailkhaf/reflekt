@@ -1,10 +1,10 @@
 include ':api',
-        ':preview',
         ':camera',
         ':session-frames',
+        ':preview',
+        ':frames' ,
         ':frames-app'
 //':app' ,
 //':core' ,
 //':capture' ,
-//':frames' ,
 //':video' ,

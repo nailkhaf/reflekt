@@ -141,12 +141,13 @@ internal class FrameProcessorSession(
         debug { "#onClosed" }
     }
 
-    override fun close() = runBlocking {
-        sessionContext {
+    override fun close() {
+        launch(start = CoroutineStart.UNDISPATCHED) {
             debug { "#close" }
             session.stopRepeating()
             session.abortCaptures()
             session.close()
+            debug { "#closed" }
         }
     }
 

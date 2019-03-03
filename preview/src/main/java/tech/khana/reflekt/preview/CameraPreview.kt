@@ -122,6 +122,7 @@ class CameraPreview @JvmOverloads constructor(
     private fun Matrix.configureTransform(previewSize: Size, width: Int, height: Int) {
         val centerX = width / 2f
         val centerY = height / 2f
+        val displayOrientation = displayOrientation
         val shouldSwap = when (displayOrientation) {
             0, 180 -> true
             90, 270 -> false
@@ -132,45 +133,31 @@ class CameraPreview @JvmOverloads constructor(
         val viewRatio = viewWidth.toFloat() / viewHeight.toFloat()
         val previewRatio = previewSize.width.toFloat() / previewSize.height.toFloat()
         val scale = viewRatio / previewRatio
-        when (displayOrientation) {
-            0 -> {
-                postRotate(0f, centerX, centerY)
-                postScale(
-                    if (scale > 1) scale else 1f,
-                    if (scale < 1) 1f / scale else 1f,
-                    centerX,
-                    centerY
-                )
-            }
-            180 -> {
-                postRotate(180f, centerX, centerY)
-                postScale(
-                    if (scale > 1) scale else 1f,
-                    if (scale < 1) 1f / scale else 1f,
-                    centerX,
-                    centerY
-                )
-            }
-            90 -> {
-                postRotate(270f, centerX, centerY)
-                postScale(
-                    previewRatio * if (scale > 1) scale else 1f,
-                    1f / previewRatio * if (scale < 1) 1f / scale else 1f,
-                    centerX,
-                    centerY
-                )
-            }
-            270 -> {
-                postRotate(90f, centerX, centerY)
-                postScale(
-                    previewRatio * if (scale > 1) scale else 1f,
-                    1f / previewRatio * if (scale < 1) 1f / scale else 1f,
-                    centerX,
-                    centerY
-                )
-            }
+
+        val rotation = when (displayOrientation) {
+            0 -> 0f
+            180 -> 180f
+            90 -> 270f
+            270 -> 90f
             else -> error("unknown display rotation")
         }
+
+        val scaleCompensation = when (displayOrientation) {
+            0 -> 1f
+            180 -> 1f
+            90 -> previewRatio
+            270 -> previewRatio
+            else -> error("unknown display rotation")
+        }
+
+        postRotate(rotation, centerX, centerY)
+
+        postScale(
+            scaleCompensation * if (scale > 1) scale else 1f,
+            1f / scaleCompensation * if (scale < 1) 1f / scale else 1f,
+            centerX,
+            centerY
+        )
     }
 
     override suspend fun release() {

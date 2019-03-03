@@ -124,8 +124,8 @@ internal class CameraImpl(
         debug { "#onClosed" }
     }
 
-    override fun close() = runBlocking {
-        cameraContext {
+    override fun close() {
+        launch(start = CoroutineStart.UNDISPATCHED) {
             debug { "#close" }
             check(::camera.isInitialized) { "camera is not initialized" }
             session?.close()
